@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
-// Pages
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import CitizenDashboard from './pages/citizen/Dashboard';
-import ReportIssue from './pages/citizen/ReportIssue';
-import MyComplaints from './pages/citizen/MyComplaints';
-import ComplaintDetails from './pages/citizen/ComplaintDetails';
-import ExploreMap from './pages/citizen/ExploreMap';
-import Profile from './pages/citizen/Profile';
-import AdminDashboard from './pages/admin/Dashboard';
-import AllComplaints from './pages/admin/AllComplaints';
-import PriorityQueue from './pages/admin/PriorityQueue';
-import Departments from './pages/admin/Departments';
-import Workers from './pages/admin/Workers';
-import Analytics from './pages/admin/Analytics';
-import Settings from './pages/admin/Settings';
+// Pages (lazy-loaded so each screen downloads only its own code — faster startup)
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const CitizenDashboard = lazy(() => import('./pages/citizen/Dashboard'));
+const ReportIssue = lazy(() => import('./pages/citizen/ReportIssue'));
+const MyComplaints = lazy(() => import('./pages/citizen/MyComplaints'));
+const ComplaintDetails = lazy(() => import('./pages/citizen/ComplaintDetails'));
+const ExploreMap = lazy(() => import('./pages/citizen/ExploreMap'));
+const Profile = lazy(() => import('./pages/citizen/Profile'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AllComplaints = lazy(() => import('./pages/admin/AllComplaints'));
+const PriorityQueue = lazy(() => import('./pages/admin/PriorityQueue'));
+const Departments = lazy(() => import('./pages/admin/Departments'));
+const Workers = lazy(() => import('./pages/admin/Workers'));
+const Analytics = lazy(() => import('./pages/admin/Analytics'));
+const Settings = lazy(() => import('./pages/admin/Settings'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <div className="w-8 h-8 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function BackButtonGuard() {
   const location = useLocation();
@@ -62,6 +70,7 @@ function App() {
   return (
     <Router>
       <BackButtonGuard />
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -87,6 +96,7 @@ function App() {
         <Route path="/admin/analytics" element={<Analytics />} />
         <Route path="/admin/settings" element={<Settings />} />
       </Routes>
+      </Suspense>
     </Router>
   );
 }

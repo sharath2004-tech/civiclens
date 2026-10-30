@@ -47,10 +47,27 @@ function convertLocalUploadToDataUri(rawUrl) {
  * MongoDB Atlas cluster using the native MongoClient (`mongoose.connection.client`)
  * and consolidates open complaints within a 30-meter radius.
  */
-async function syncLegacyComplaintsFromEdubridge(mongoose) {
+let syncInFlight = null;
+
+/**
+ * Non-blocking wrapper: runs the heavy cross-DB sync in the background at most once every
+ * 10 minutes, so API requests (profile, complaint lists) return instantly.
+ */
+function syncLegacyComplaintsFromEdubridge(mongoose) {
   const now = Date.now();
-  if (now - lastSyncTimestamp < 30000) return;
+  if (syncInFlight || now - lastSyncTimestamp < 10 * 60 * 1000) {
+    return Promise.resolve();
+  }
   lastSyncTimestamp = now;
+  syncInFlight = runLegacySync(mongoose)
+    .catch((err) => console.warn('Background sync failed:', err?.message || err))
+    .finally(() => {
+      syncInFlight = null;
+    });
+  return Promise.resolve();
+}
+
+async function runLegacySync(mongoose) {
 
   try {
     const client = mongoose?.connection?.client;
@@ -313,7 +330,28 @@ async function findExistingDuplicate(Complaint, { fileHashes = [], imageHashes =
   return null;
 }
 
+/**
+ * Lightweight list projection: keeps only the first image/media thumbnail so list
+ * endpoints (dashboards) don't ship every full Base64 photo/video.
+ */
+function slimComplaintForList(doc) {
+  const c = typeof doc?.toObject === 'function' ? doc.toObject() : { ...doc };
+  const firstOnly = (arr) => (Array.isArray(arr) && arr.length ? [arr[0]] : []);
+  const isVideoData = (v) => typeof v === 'string' && v.startsWith('data:video/');
+  c.mediaCount = (c.beforeImages?.length || c.images?.length || 0);
+  c.images = firstOnly(c.images).filter((v) => !isVideoData(v));
+  c.beforeImages = firstOnly(c.beforeImages).filter((v) => !isVideoData(v));
+  c.beforeMedia = firstOnly(c.beforeMedia).map((m) =>
+    m && isVideoData(m.url) ? { ...m, url: '' } : m
+  );
+  c.afterImages = [];
+  c.afterMedia = [];
+  delete c.frameBase64;
+  return c;
+}
+
 module.exports = {
+  slimComplaintForList,
   computeFileHash,
   hammingDistance,
   distanceMeters,

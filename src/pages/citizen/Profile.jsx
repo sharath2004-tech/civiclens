@@ -27,8 +27,7 @@ export default function Profile() {
   }, []);
 
   const fetchProfile = async () => {
-    try {
-      const data = await userAPI.getProfile();
+    const applyUser = (data) => {
       setUser(data);
       setFormData({
         name: data.name || '',
@@ -36,8 +35,29 @@ export default function Profile() {
         phone: data.phone || '',
         address: data.address || '',
       });
+    };
+
+    // Show cached profile instantly, then refresh from server
+    try {
+      const cached = JSON.parse(localStorage.getItem('user') || 'null');
+      if (cached) {
+        applyUser(cached);
+        setLoading(false);
+      }
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      const data = await userAPI.getProfile();
+      if (data) {
+        applyUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
+      }
     } catch (error) {
-      setError('Failed to load profile');
+      if (!localStorage.getItem('user')) {
+        setError('Unable to reach server. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }

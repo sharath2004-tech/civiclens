@@ -4,23 +4,26 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Complaint = require('../models/Complaint');
 const { protect } = require('../middleware/auth');
-const { syncLegacyComplaintsFromEdubridge } = require('../utils/deduplication');
+const { syncLegacyComplaintsFromEdubridge, slimComplaintForList } = require('../utils/deduplication');
 
 // @route   GET /api/users/profile
 // @desc    Get current user profile
 // @access  Private
 router.get('/profile', protect, async (req, res) => {
   try {
-    await syncLegacyComplaintsFromEdubridge(mongoose);
-    const user = await User.findById(req.user._id);
+    syncLegacyComplaintsFromEdubridge(mongoose);
+    const [user, totalComplaints, resolvedComplaints, pendingComplaints] = await Promise.all([
+      User.findById(req.user._id).lean(),
+      Complaint.countDocuments({}),
+      Complaint.countDocuments({ status: 'Resolved' }),
+      Complaint.countDocuments({
+        status: { $in: ['Submitted', 'Under Review', 'Assigned', 'In Progress'] }
+      })
+    ]);
 
-    const totalComplaints = await Complaint.countDocuments({});
-    const resolvedComplaints = await Complaint.countDocuments({
-      status: 'Resolved'
-    });
-    const pendingComplaints = await Complaint.countDocuments({
-      status: { $in: ['Submitted', 'Under Review', 'Assigned', 'In Progress'] }
-    });
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
 
     res.json({
       status: 'success',
@@ -80,12 +83,13 @@ router.get('/complaints', protect, async (req, res) => {
     const query = status ? { status } : {};
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const complaints = await Complaint.find(query)
+    const complaints = (await Complaint.find(query)
       .populate('reportedBy', 'name email phone')
       .populate('assignedTo.worker', 'name department')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .skip(skip);
+      .skip(skip)
+      .lean()).map(slimComplaintForList);
 
     const total = await Complaint.countDocuments(query);
 

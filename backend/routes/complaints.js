@@ -7,7 +7,7 @@ const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { uploadFileToCloudinary } = require('../utils/cloudinary');
-const { computeFileHash, findExistingDuplicate, syncLegacyComplaintsFromEdubridge } = require('../utils/deduplication');
+const { computeFileHash, findExistingDuplicate, syncLegacyComplaintsFromEdubridge, slimComplaintForList } = require('../utils/deduplication');
 const { notifyNewComplaint, notifyDuplicateMerged } = require('../utils/telegram');
 const { transcribeVideoAudio, analyzeCivicIssue } = require('../utils/ai');
 
@@ -35,12 +35,13 @@ router.get('/', async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const complaints = await Complaint.find(query)
+    const complaints = (await Complaint.find(query)
       .populate('reportedBy', 'name email phone')
       .populate('assignedTo.worker', 'name email department')
       .sort({ priority: -1, createdAt: -1 })
       .limit(parseInt(limit))
-      .skip(skip);
+      .skip(skip)
+      .lean()).map(slimComplaintForList);
 
     const total = await Complaint.countDocuments(query);
 
