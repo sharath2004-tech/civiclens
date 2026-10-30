@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 import { complaintAPI } from '../../services/api';
 import { resolveMediaUrl, isVideoMedia } from '../../lib/utils';
+import { useI18n } from '../../lib/i18n';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -105,20 +107,6 @@ export default function Dashboard() {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#0B63F6]' : ''}`} />
               <span>Refresh</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Are you sure you want to log out?')) {
-                  localStorage.removeItem('token');
-                  localStorage.removeItem('user');
-                  window.location.replace('/login');
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-600 hover:bg-red-100 shadow-2xs shrink-0"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
             </button>
           </div>
         </div>
@@ -228,39 +216,6 @@ export default function Dashboard() {
             </button>
           </div>
         )}
-
-        {/* Issues Near You / Live Hotspot Map Card */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
-              Issues Near You
-            </h2>
-            <button
-              type="button"
-              onClick={() => navigate('/admin/map')}
-              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#0B63F6] hover:underline"
-            >
-              <span>View map</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/admin/map')}
-            className="w-full rounded-[20px] bg-[#EAF1FB] hover:bg-[#E1ECFA] active:scale-[0.99] transition-all py-6 px-5 flex flex-col items-center justify-center text-center border border-[#D8E6F8]"
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[#0B63F6] mb-1.5">
-              <MapIcon className="w-6 h-6" />
-            </div>
-            <div className="text-[16px] font-extrabold text-[#1E293B]">
-              Interactive City Map
-            </div>
-            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
-              30m cluster hotspots and live GPS pins
-            </div>
-          </button>
-        </div>
 
         {/* Filtered Complaints Feed */}
         <div>
