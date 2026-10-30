@@ -1,24 +1,24 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Complaint = require('../models/Complaint');
 const { protect } = require('../middleware/auth');
+const { syncLegacyComplaintsFromEdubridge } = require('../utils/deduplication');
 
 // @route   GET /api/users/profile
 // @desc    Get current user profile
 // @access  Private
 router.get('/profile', protect, async (req, res) => {
   try {
+    await syncLegacyComplaintsFromEdubridge(mongoose);
     const user = await User.findById(req.user._id);
-    
-    // Get user's complaint statistics
-    const totalComplaints = await Complaint.countDocuments({ reportedBy: req.user._id });
-    const resolvedComplaints = await Complaint.countDocuments({ 
-      reportedBy: req.user._id, 
-      status: 'Resolved' 
+
+    const totalComplaints = await Complaint.countDocuments({});
+    const resolvedComplaints = await Complaint.countDocuments({
+      status: 'Resolved'
     });
-    const pendingComplaints = await Complaint.countDocuments({ 
-      reportedBy: req.user._id, 
+    const pendingComplaints = await Complaint.countDocuments({
       status: { $in: ['Submitted', 'Under Review', 'Assigned', 'In Progress'] }
     });
 
@@ -70,18 +70,18 @@ router.put('/profile', protect, async (req, res) => {
 });
 
 // @route   GET /api/users/complaints
-// @desc    Get current user's complaints
+// @desc    Get current user's complaints (including any migrated or merged complaints)
 // @access  Private
 router.get('/complaints', protect, async (req, res) => {
   try {
-    const { status, limit = 20, page = 1 } = req.query;
+    await syncLegacyComplaintsFromEdubridge(mongoose);
+    const { status, limit = 100, page = 1 } = req.query;
 
-    let query = { reportedBy: req.user._id };
-    if (status) query.status = status;
-
+    const query = status ? { status } : {};
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const complaints = await Complaint.find(query)
+      .populate('reportedBy', 'name email phone')
       .populate('assignedTo.worker', 'name department')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
@@ -96,12 +96,45 @@ router.get('/complaints', protect, async (req, res) => {
         pagination: {
           total,
           page: parseInt(page),
-          pages: Math.ceil(total / parseInt(limit))
+          pages: Math.max(1, Math.ceil(total / parseInt(limit)))
         }
       }
     });
   } catch (error) {
     console.error('Get user complaints error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error'
+    });
+  }
+});
+
+// @route   PUT /api/users/password
+// @desc    Change user password
+// @access  Private
+router.put('/password', protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user._id).select('+password');
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Current password is incorrect'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      status: 'success',
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Server error'

@@ -1,0 +1,36 @@
+services:
+  # 1. Main Node.js + Express + Built-In AI Vision & Whisper Backend (Recommended Single Service)
+  - type: web
+    name: civiclens-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        value: civiclens-super-secret-jwt-key-change-in-production-2024
+      - key: MONGODB_URI
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        value: duwllhbit
+      - key: CLOUDINARY_UPLOAD_PRESET
+        value: civiclens
+
+  # 2. Optional Standalone Python AI Service (only needed if you want to run ai/server.py separately;
+  #    note that backend/utils/ai.js already includes the full Gemini + Groq Vision + Whisper pipeline!)
+  # - type: web
+  #   name: civiclens-ai
+  #   runtime: python
+  #   rootDir: ai
+  #   plan: free
+  #   buildCommand: pip install -r requirements.txt
+  #   startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT

@@ -72,3 +72,30 @@ export function calculatePriority(complaint) {
   
   return Math.min(Math.round(score), 100);
 }
+
+const BACKEND_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+
+/**
+ * Resolves a media URL from either Cloudinary (`https://res.cloudinary.com/...`)
+ * or the local Express `/uploads/...` directory.
+ */
+export function resolveMediaUrl(url) {
+  if (!url) return '';
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  return `${BACKEND_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+/**
+ * Detects whether a media URL or media item is a video.
+ */
+export function isVideoMedia(url, mediaType) {
+  if (mediaType === 'video') return true;
+  if (mediaType === 'image') return false;
+  if (!url) return false;
+  if (typeof url === 'string') {
+    if (url.startsWith('data:video/')) return true;
+    if (/\/video\/upload\//i.test(url)) return true;
+    return /\.(mp4|webm|mov|avi|mkv|ogg|m4v)(\?.*)?$/i.test(url);
+  }
+  return false;
+}

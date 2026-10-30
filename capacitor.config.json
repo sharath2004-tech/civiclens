@@ -1,0 +1,12 @@
+{
+  "appId": "com.civiclens.app",
+  "appName": "CivicLens",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

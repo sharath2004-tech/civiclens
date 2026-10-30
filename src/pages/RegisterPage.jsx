@@ -41,7 +41,7 @@ export default function RegisterPage({ setUser }) {
         password: formData.password,
       });
       
-      setUser(response.user);
+      setUser(response.data.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');

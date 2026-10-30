@@ -293,10 +293,10 @@ export const MOCK_COMPLAINTS = [
 ];
 
 export const STATISTICS = {
-  totalReports: 2847,
-  resolvedIssues: 2134,
-  activeComplaints: 423,
-  avgResolutionTime: '4.2 days',
+  totalReports:0,
+  resolvedIssues: 0,
+  activeComplaints: 0,
+  avgResolutionTime: '5 days',
 };
 
 export const DEPARTMENTS = [

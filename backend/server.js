@@ -5,18 +5,26 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Initialize express app
 const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
-  credentials: true
+  origin: '*', // Allow all origins for development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Request logging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -27,6 +35,12 @@ const userRoutes = require('./routes/users');
 const complaintRoutes = require('./routes/complaints');
 const adminRoutes = require('./routes/admin');
 const statsRoutes = require('./routes/stats');
+const aiRoutes = require('./routes/ai');
+const { execSync } = require('child_process');
+const Complaint = require('./models/Complaint');
+const User = require('./models/User');
+const { startTelegramBotPolling } = require('./utils/telegram');
+const { syncLegacyComplaintsFromEdubridge } = require('./utils/deduplication');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -34,6 +48,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -46,7 +61,12 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error details:', {
+    message: err.message,
+    stack: err.stack,
+    body: req.body,
+    url: req.url
+  });
   res.status(err.status || 500).json({
     status: 'error',
     message: err.message || 'Internal Server Error'
@@ -65,7 +85,27 @@ app.use((req, res) => {
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ MongoDB Atlas connected successfully');
+    console.log(`✅ MongoDB Atlas connected successfully (Database: ${mongoose.connection.name})`);
+
+    // Ensure default Admin user exists
+    const existingAdmin = await User.findOne({ email: 'admin@civiclens.com' });
+    if (!existingAdmin) {
+      await User.create({
+        name: 'Municipal Admin',
+        email: 'admin@civiclens.com',
+        password: 'admin123',
+        phone: '9999999999',
+        address: 'Municipal Corporation HQ',
+        role: 'admin',
+        department: 'Central Command'
+      });
+      console.log('👑 Default Admin created: admin@civiclens.com / admin123');
+    }
+    // Sync legacy complaints from edubridge & consolidate open complaints within 30m radius (non-blocking)
+    syncLegacyComplaintsFromEdubridge(mongoose)
+      .then(() => Complaint.countDocuments({}))
+      .then((totalCount) => console.log(`📊 Total complaints in active database: ${totalCount}`))
+      .catch(() => {});
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
     process.exit(1);
@@ -76,15 +116,19 @@ const connectDB = async () => {
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
     console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+    startTelegramBotPolling(Complaint);
   });
 });
 
-// Handle unhandled promise rejections
+// Keep server alive on transient background network/polling rejections
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
+  console.warn('⚠️ Background Promise Rejection (ignored):', err?.message || err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.warn('⚠️ Uncaught Exception (ignored):', err?.message || err);
 });

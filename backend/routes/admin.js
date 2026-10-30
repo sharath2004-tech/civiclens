@@ -1,9 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Complaint = require('../models/Complaint');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { uploadFileToCloudinary } = require('../utils/cloudinary');
+const { syncLegacyComplaintsFromEdubridge } = require('../utils/deduplication');
+const { notifyStatusUpdate } = require('../utils/telegram');
+
+function buildComplaintIdQuery(idParam) {
+  if (mongoose.Types.ObjectId.isValid(idParam)) {
+    return { $or: [{ complaintId: idParam }, { _id: idParam }] };
+  }
+  return { complaintId: idParam };
+}
 
 // All routes require admin/worker authentication
 router.use(protect);
@@ -14,9 +25,9 @@ router.use(authorize('admin', 'worker'));
 // @access  Private (Admin/Worker)
 router.put('/complaints/:id/status', async (req, res) => {
   try {
-    const { status, message } = req.body;
+    const { status, message, notes } = req.body;
 
-    const complaint = await Complaint.findOne({ complaintId: req.params.id });
+    const complaint = await Complaint.findOne(buildComplaintIdQuery(req.params.id));
 
     if (!complaint) {
       return res.status(404).json({
@@ -31,7 +42,7 @@ router.put('/complaints/:id/status', async (req, res) => {
     // Add update entry
     complaint.updates.push({
       status,
-      message: message || `Status updated to ${status}`,
+      message: message || notes || `Status updated to ${status}`,
       by: req.user.name
     });
 
@@ -46,6 +57,8 @@ router.put('/complaints/:id/status', async (req, res) => {
     }
 
     await complaint.save();
+
+    notifyStatusUpdate(complaint, status, message || notes).catch(() => {});
 
     res.json({
       status: 'success',
@@ -68,7 +81,7 @@ router.put('/complaints/:id/assign', authorize('admin'), async (req, res) => {
   try {
     const { department, workerId } = req.body;
 
-    const complaint = await Complaint.findOne({ complaintId: req.params.id });
+    const complaint = await Complaint.findOne(buildComplaintIdQuery(req.params.id));
 
     if (!complaint) {
       return res.status(404).json({
@@ -111,11 +124,11 @@ router.put('/complaints/:id/assign', authorize('admin'), async (req, res) => {
 });
 
 // @route   POST /api/admin/complaints/:id/after-images
-// @desc    Upload after/resolution images
+// @desc    Upload after/resolution images or videos (stored in Cloudinary)
 // @access  Private (Admin/Worker)
 router.post('/complaints/:id/after-images', upload.array('afterImages', 5), async (req, res) => {
   try {
-    const complaint = await Complaint.findOne({ complaintId: req.params.id });
+    const complaint = await Complaint.findOne(buildComplaintIdQuery(req.params.id));
 
     if (!complaint) {
       return res.status(404).json({
@@ -124,24 +137,31 @@ router.post('/complaints/:id/after-images', upload.array('afterImages', 5), asyn
       });
     }
 
-    // Get uploaded file paths
-    const afterImages = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    // Upload files to Cloudinary (or local fallback)
+    const uploadedMedia = req.files && req.files.length > 0
+      ? await Promise.all(req.files.map((file) => uploadFileToCloudinary(file, 'civiclens/resolutions')))
+      : [];
+
+    const afterImages = uploadedMedia.map((m) => m.url);
 
     complaint.afterImages.push(...afterImages);
+    if (!complaint.afterMedia) complaint.afterMedia = [];
+    complaint.afterMedia.push(...uploadedMedia);
     await complaint.save();
 
     res.json({
       status: 'success',
-      message: 'Resolution images uploaded successfully',
+      message: 'Resolution media uploaded successfully',
       data: {
-        afterImages: complaint.afterImages
+        afterImages: complaint.afterImages,
+        afterMedia: complaint.afterMedia
       }
     });
   } catch (error) {
     console.error('Upload after images error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -151,6 +171,7 @@ router.post('/complaints/:id/after-images', upload.array('afterImages', 5), asyn
 // @access  Private (Admin)
 router.get('/complaints/priority-queue', authorize('admin'), async (req, res) => {
   try {
+    await syncLegacyComplaintsFromEdubridge(mongoose);
     const { status, limit = 50 } = req.query;
 
     let query = {};

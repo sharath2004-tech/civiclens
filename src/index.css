@@ -29,9 +29,23 @@
   }
 }
 
+/* Prevent mobile top header overlap on all pages & constrain Leaflet z-index */
+@media (max-width: 1023px) {
+  .flex.min-h-screen > .flex-1 {
+    padding-top: 4.5rem !important;
+  }
+}
+
 /* Leaflet map styles */
 .leaflet-container {
   font-family: 'Inter', sans-serif;
+  z-index: 10 !important;
+}
+
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20 !important;
 }
 
 .leaflet-div-icon {

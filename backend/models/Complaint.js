@@ -67,8 +67,23 @@ const complaintSchema = new mongoose.Schema({
   images: [{
     type: String
   }],
+  beforeImages: [{
+    type: String
+  }],
+  beforeMedia: [{
+    url: { type: String, required: true },
+    mediaType: { type: String, enum: ['image', 'video'], default: 'image' },
+    publicId: { type: String, default: null },
+    storage: { type: String, enum: ['cloudinary', 'local'], default: 'cloudinary' }
+  }],
   afterImages: [{
     type: String
+  }],
+  afterMedia: [{
+    url: { type: String, required: true },
+    mediaType: { type: String, enum: ['image', 'video'], default: 'image' },
+    publicId: { type: String, default: null },
+    storage: { type: String, enum: ['cloudinary', 'local'], default: 'cloudinary' }
   }],
   severity: {
     type: String,
@@ -125,6 +140,29 @@ const complaintSchema = new mongoose.Schema({
     confidence: Number,
     timestamp: Date
   },
+  voiceTranscript: {
+    type: String,
+    default: ''
+  },
+  videoSummary: {
+    type: String,
+    default: ''
+  },
+  detectedLanguage: {
+    type: String,
+    default: ''
+  },
+  fileHashes: [{
+    type: String
+  }],
+  imageHashes: [{
+    type: String
+  }],
+  reporters: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reportedAt: { type: Date, default: Date.now },
+    note: String
+  }],
   updates: [updateSchema]
 }, {
   timestamps: true
@@ -138,14 +176,13 @@ complaintSchema.index({ status: 1, priority: -1 });
 complaintSchema.index({ reportedBy: 1, createdAt: -1 });
 complaintSchema.index({ complaintId: 1 });
 
-// Auto-generate complaint ID before saving
-complaintSchema.pre('save', async function(next) {
+// Auto-generate complaint ID before saving (Mongoose 9 async hook - no next() callback)
+complaintSchema.pre('save', async function() {
   if (!this.complaintId) {
     const year = new Date().getFullYear();
     const count = await mongoose.model('Complaint').countDocuments();
     this.complaintId = `CL-${year}-${String(count + 1).padStart(3, '0')}`;
   }
-  next();
 });
 
 // Calculate priority based on various factors

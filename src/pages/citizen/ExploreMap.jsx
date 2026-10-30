@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { X, Filter, Search, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { complaintAPI } from '../../services/api';
+import { resolveMediaUrl, isVideoMedia } from '../../lib/utils';
 import 'leaflet/dist/leaflet.css';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -28,7 +29,7 @@ export default function ExploreMap() {
   const fetchComplaints = async () => {
     try {
       const data = await complaintAPI.getAll();
-      setComplaints(data);
+      setComplaints(Array.isArray(data) ? data : data?.data?.complaints || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
     } finally {
@@ -141,11 +142,19 @@ export default function ExploreMap() {
                   {complaint.status}
                 </div>
                 {complaint.beforeImages?.[0] && (
-                  <img 
-                    src={`http://localhost:5000${complaint.beforeImages[0]}`}
-                    alt={complaint.title}
-                    className="w-full h-32 object-cover rounded mb-2"
-                  />
+                  isVideoMedia(complaint.beforeImages[0], complaint.beforeMedia?.[0]?.mediaType) ? (
+                    <video
+                      src={resolveMediaUrl(complaint.beforeImages[0])}
+                      controls
+                      className="w-full h-32 object-cover rounded mb-2 bg-black"
+                    />
+                  ) : (
+                    <img 
+                      src={resolveMediaUrl(complaint.beforeImages[0])}
+                      alt={complaint.title}
+                      className="w-full h-32 object-cover rounded mb-2"
+                    />
+                  )
                 )}
                 <button
                   onClick={() => navigate(`/complaint/${complaint._id}`)}

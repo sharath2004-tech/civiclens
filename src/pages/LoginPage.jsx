@@ -20,9 +20,9 @@ export default function LoginPage({ setUser }) {
     
     try {
       const response = await authAPI.login(formData);
-      setUser(response.user);
+      setUser(response.data.user);
       
-      if (response.user.role === 'admin') {
+      if (response.data.user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
