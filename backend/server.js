@@ -77,7 +77,7 @@ app.use(['/api/ai', '/ai'], aiRoutes);
 app.get(['/api/health', '/health', '/'], (req, res) => {
   res.json({ 
     status: 'success', 
-    message: 'JenSetu API is running',
+    message: 'JanSetu API is running',
     timestamp: new Date().toISOString()
   });
 });

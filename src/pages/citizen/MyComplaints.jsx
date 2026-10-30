@@ -162,6 +162,11 @@ export default function MyComplaints() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     )}
+                    {complaint.beforeImages?.length > 1 && (
+                      <span className="absolute top-2 right-2 bg-black/75 backdrop-blur-xs text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                        +{complaint.beforeImages.length - 1} more
+                      </span>
+                    )}
                   </div>
                 )}
 

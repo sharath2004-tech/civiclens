@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, User, Building, Upload, Loader2, Film, Cloud } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, Building, Upload, Loader2, Film, Cloud, Images, ChevronDown, ChevronUp } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import { complaintAPI, adminAPI } from '../../services/api';
 import { resolveMediaUrl, isVideoMedia } from '../../lib/utils';
@@ -35,6 +35,10 @@ export default function ComplaintDetails({ roleProp }) {
   const [loading, setLoading] = useState(true);
   const [uploadingAfter, setUploadingAfter] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedEvidenceIdx, setSelectedEvidenceIdx] = useState(0);
+  const [showAllEvidence, setShowAllEvidence] = useState(false);
+  const [selectedAfterIdx, setSelectedAfterIdx] = useState(0);
+  const [showAllAfter, setShowAllAfter] = useState(false);
 
   const storedUser = (() => {
     try {
@@ -163,96 +167,6 @@ export default function ComplaintDetails({ roleProp }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Evidence Photo / Video */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">Evidence Media (Photo / Video)</h2>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
-                  <Cloud className="w-3.5 h-3.5" /> Cloudinary
-                </span>
-              </div>
-              {beforeList.length === 0 ? (
-                <p className="text-gray-500 text-sm">No media uploaded for this complaint.</p>
-              ) : (
-                <div className="space-y-4">
-                  {beforeList.map((rawUrl, idx) => {
-                    const mediaItem = complaint.beforeMedia?.[idx];
-                    const fullUrl = resolveMediaUrl(rawUrl);
-                    const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
-                    return isVideo ? (
-                      <div key={idx} className="relative rounded-xl overflow-hidden bg-black">
-                        <video src={fullUrl} controls className="w-full max-h-96 mx-auto" />
-                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded bg-black/70 px-2.5 py-1 text-xs font-semibold text-white">
-                          <Film className="w-3.5 h-3.5" /> Video Evidence
-                        </span>
-                      </div>
-                    ) : (
-                      <img
-                        key={idx}
-                        src={fullUrl}
-                        alt={`Complaint evidence ${idx + 1}`}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        className="w-full rounded-xl max-h-96 object-cover border border-gray-100"
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Resolution Media (After Images / Videos) */}
-            {(complaint.afterImages?.length > 0 || localStorage.getItem('token')) && (
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">Resolution Proof (Photos / Videos)</h2>
-                  <button
-                    type="button"
-                    onClick={() => afterFileRef.current?.click()}
-                    disabled={uploadingAfter}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-white rounded-lg text-xs font-semibold hover:bg-secondary-600 disabled:opacity-50"
-                  >
-                    {uploadingAfter ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Uploading {uploadProgress}%
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-3.5 h-3.5" />
-                        Upload Proof
-                      </>
-                    )}
-                  </button>
-                  <input
-                    ref={afterFileRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    multiple
-                    onChange={handleResolutionUpload}
-                    className="hidden"
-                  />
-                </div>
-                {complaint.afterImages?.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {complaint.afterImages.map((rawUrl, idx) => {
-                      const mediaItem = complaint.afterMedia?.[idx];
-                      const fullUrl = resolveMediaUrl(rawUrl);
-                      const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
-                      return isVideo ? (
-                        <video key={idx} src={fullUrl} controls className="w-full h-48 rounded-lg bg-black object-contain" />
-                      ) : (
-                        <img key={idx} src={fullUrl} alt={`Resolution ${idx + 1}`} className="w-full h-48 rounded-lg object-cover" />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No resolution proof uploaded yet.</p>
-                )}
-              </div>
-            )}
-
             {/* Description, AI Video Summary & Voice Transcript */}
             <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
               {complaint.videoSummary && (
@@ -284,12 +198,279 @@ export default function ComplaintDetails({ roleProp }) {
 
             {/* Location */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-bold mb-4">Location</h2>
+              <h2 className="text-lg font-bold mb-2">Location</h2>
               <div className="flex items-start gap-2 text-gray-700">
-                <MapPin className="w-5 h-5 text-secondary mt-0.5" />
-                <p>{complaint.location?.address || complaint.location || 'Address not provided'}</p>
+                <MapPin className="w-5 h-5 text-secondary mt-0.5 shrink-0" />
+                <p className="font-medium">{complaint.location?.address || complaint.location || 'Address not provided'}</p>
               </div>
             </div>
+
+            {/* Evidence Photo / Video (Cleanly organized underneath details) */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Images className="w-5 h-5 text-secondary" />
+                  <h2 className="text-lg font-bold">Evidence Media ({beforeList.length})</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  {beforeList.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllEvidence(!showAllEvidence)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-secondary bg-blue-50 hover:bg-blue-100 transition-colors"
+                    >
+                      <span>{showAllEvidence ? 'Collapse' : `See all (${beforeList.length})`}</span>
+                      {showAllEvidence ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                    <Cloud className="w-3.5 h-3.5 text-blue-600" /> Cloudinary
+                  </span>
+                </div>
+              </div>
+
+              {beforeList.length === 0 ? (
+                <p className="text-gray-500 text-sm">No media uploaded for this complaint.</p>
+              ) : (
+                <div className="space-y-3">
+                  {/* Primary Featured Media */}
+                  {(() => {
+                    const activeIdx = Math.min(selectedEvidenceIdx, beforeList.length - 1);
+                    const rawUrl = beforeList[activeIdx];
+                    const mediaItem = complaint.beforeMedia?.[activeIdx];
+                    const fullUrl = resolveMediaUrl(rawUrl);
+                    const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
+
+                    return isVideo ? (
+                      <div className="relative rounded-xl overflow-hidden bg-black max-h-80 flex items-center justify-center">
+                        <video src={fullUrl} controls className="w-full max-h-80 mx-auto" />
+                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded bg-black/70 px-2.5 py-1 text-xs font-semibold text-white">
+                          <Film className="w-3.5 h-3.5" /> Video Evidence #{activeIdx + 1}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl overflow-hidden bg-slate-900/5 border border-slate-100 max-h-80 flex items-center justify-center">
+                        <img
+                          src={fullUrl}
+                          alt={`Complaint evidence ${activeIdx + 1}`}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                          className="w-full max-h-80 object-contain mx-auto"
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Thumbnail Selector Strip if multiple images */}
+                  {beforeList.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
+                      {beforeList.map((rawUrl, idx) => {
+                        const mediaItem = complaint.beforeMedia?.[idx];
+                        const fullUrl = resolveMediaUrl(rawUrl);
+                        const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
+                        const isSelected = idx === Math.min(selectedEvidenceIdx, beforeList.length - 1);
+
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setSelectedEvidenceIdx(idx)}
+                            className={`relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                              isSelected
+                                ? 'border-[#0B63F6] ring-2 ring-[#0B63F6]/30 scale-105'
+                                : 'border-slate-200 opacity-70 hover:opacity-100'
+                            }`}
+                          >
+                            {isVideo ? (
+                              <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white">
+                                <Film className="w-5 h-5" />
+                              </div>
+                            ) : (
+                              <img src={fullUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                            )}
+                            <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] font-bold px-1 rounded-tl">
+                              #{idx + 1}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Expanded Grid View on 'See all' */}
+                  {showAllEvidence && beforeList.length > 2 && (
+                    <div className="pt-3 border-t border-slate-100">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">All Uploaded Photos ({beforeList.length})</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {beforeList.map((rawUrl, idx) => {
+                          const mediaItem = complaint.beforeMedia?.[idx];
+                          const fullUrl = resolveMediaUrl(rawUrl);
+                          const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
+                          return (
+                            <button
+                              key={`grid-${idx}`}
+                              type="button"
+                              onClick={() => setSelectedEvidenceIdx(idx)}
+                              className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-50 aspect-video group"
+                            >
+                              {isVideo ? (
+                                <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white">
+                                  <Film className="w-6 h-6" />
+                                </div>
+                              ) : (
+                                <img src={fullUrl} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              )}
+                              <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[11px] font-semibold px-1.5 py-0.5 rounded">
+                                Photo {idx + 1}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Resolution Media (After Images / Videos) */}
+            {(complaint.afterImages?.length > 0 || localStorage.getItem('token')) && (
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Images className="w-5 h-5 text-green-600" />
+                    <h2 className="text-lg font-bold">Resolution Proof ({complaint.afterImages?.length || 0})</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {complaint.afterImages?.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllAfter(!showAllAfter)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 transition-colors"
+                      >
+                        <span>{showAllAfter ? 'Collapse' : `See all (${complaint.afterImages.length})`}</span>
+                        {showAllAfter ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => afterFileRef.current?.click()}
+                      disabled={uploadingAfter}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-white rounded-lg text-xs font-semibold hover:bg-secondary-600 disabled:opacity-50"
+                    >
+                      {uploadingAfter ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Uploading {uploadProgress}%
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          Upload Proof
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <input
+                    ref={afterFileRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handleResolutionUpload}
+                    className="hidden"
+                  />
+                </div>
+                {complaint.afterImages?.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* Primary After Media */}
+                    {(() => {
+                      const activeIdx = Math.min(selectedAfterIdx, complaint.afterImages.length - 1);
+                      const rawUrl = complaint.afterImages[activeIdx];
+                      const mediaItem = complaint.afterMedia?.[activeIdx];
+                      const fullUrl = resolveMediaUrl(rawUrl);
+                      const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
+
+                      return isVideo ? (
+                        <video src={fullUrl} controls className="w-full max-h-80 rounded-xl bg-black object-contain mx-auto" />
+                      ) : (
+                        <div className="rounded-xl overflow-hidden bg-slate-900/5 border border-slate-100 max-h-80 flex items-center justify-center">
+                          <img src={fullUrl} alt={`Resolution proof ${activeIdx + 1}`} className="w-full max-h-80 object-contain mx-auto" />
+                        </div>
+                      );
+                    })()}
+
+                    {/* After Thumbnails */}
+                    {complaint.afterImages.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
+                        {complaint.afterImages.map((rawUrl, idx) => {
+                          const mediaItem = complaint.afterMedia?.[idx];
+                          const fullUrl = resolveMediaUrl(rawUrl);
+                          const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
+                          const isSelected = idx === Math.min(selectedAfterIdx, complaint.afterImages.length - 1);
+
+                          return (
+                            <button
+                              key={`after-thumb-${idx}`}
+                              type="button"
+                              onClick={() => setSelectedAfterIdx(idx)}
+                              className={`relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                                isSelected
+                                  ? 'border-green-600 ring-2 ring-green-500/30 scale-105'
+                                  : 'border-slate-200 opacity-70 hover:opacity-100'
+                              }`}
+                            >
+                              {isVideo ? (
+                                <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white">
+                                  <Film className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <img src={fullUrl} alt={`After thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                              )}
+                              <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] font-bold px-1 rounded-tl">
+                                #{idx + 1}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Expanded Grid View on 'See all' */}
+                    {showAllAfter && complaint.afterImages.length > 2 && (
+                      <div className="pt-3 border-t border-slate-100">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">All Resolution Proofs ({complaint.afterImages.length})</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                          {complaint.afterImages.map((rawUrl, idx) => {
+                            const mediaItem = complaint.afterMedia?.[idx];
+                            const fullUrl = resolveMediaUrl(rawUrl);
+                            const isVideo = isVideoMedia(fullUrl, mediaItem?.mediaType);
+                            return (
+                              <button
+                                key={`after-grid-${idx}`}
+                                type="button"
+                                onClick={() => setSelectedAfterIdx(idx)}
+                                className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-50 aspect-video group"
+                              >
+                                {isVideo ? (
+                                  <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white">
+                                    <Film className="w-6 h-6" />
+                                  </div>
+                                ) : (
+                                  <img src={fullUrl} alt={`Proof ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No resolution proof uploaded yet.</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}

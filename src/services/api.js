@@ -79,10 +79,16 @@ api.interceptors.response.use(
       config.baseURL = RENDER_API_URL;
       return api.request(config);
     }
-    if (error.response?.status === 401) {
+    if (
+      error.response?.status === 401 &&
+      !config?.url?.includes('/auth/login') &&
+      !config?.url?.includes('/auth/register')
+    ) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

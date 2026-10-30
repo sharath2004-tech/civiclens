@@ -7,6 +7,9 @@
 export function isFrontendCloudinaryConfigured() {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME?.trim();
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET?.trim();
+  // 'civiclens' preset is configured as signed on Cloudinary, so frontend unsigned upload must be disabled
+  // and handled by the backend which signs the upload securely or stores as Mongo Data URI.
+  if (uploadPreset === 'civiclens') return false;
   return Boolean(cloudName && uploadPreset);
 }
 

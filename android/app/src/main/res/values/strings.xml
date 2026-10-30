@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">JenSetu</string>
-    <string name="title_activity_main">JenSetu</string>
+    <string name="app_name">JanSetu</string>
+    <string name="title_activity_main">JanSetu</string>
     <string name="package_name">com.civiclens.app</string>
     <string name="custom_url_scheme">com.civiclens.app</string>
 </resources>

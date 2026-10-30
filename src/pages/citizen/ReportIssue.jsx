@@ -694,7 +694,12 @@ export default function ReportIssue() {
     try {
       let cloudinaryResult = null;
       if (isFrontendCloudinaryConfigured()) {
-        cloudinaryResult = await uploadDirectToCloudinary(formData.image, setUploadProgress);
+        try {
+          cloudinaryResult = await uploadDirectToCloudinary(formData.image, setUploadProgress);
+        } catch (uploadErr) {
+          console.warn('Frontend direct upload failed, delegating to backend:', uploadErr?.message);
+          cloudinaryResult = null;
+        }
       }
 
       const result = await complaintAPI.create(

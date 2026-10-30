@@ -33,17 +33,24 @@ export default function LandingPage() {
     active: 0,
   });
 
+  const hasToken = Boolean(localStorage.getItem('token'));
+
   useEffect(() => {
-    if (localStorage.getItem('token')) {
-      userAPI
-        .getProfile()
-        .then((u) => {
-          if (u) setUser(u);
-        })
-        .catch(() => {});
+    if (!hasToken) {
+      setComplaints([]);
+      setLiveStats({ total: 0, resolved: 0, active: 0 });
+      return;
     }
+
+    userAPI
+      .getProfile()
+      .then((u) => {
+        if (u) setUser(u);
+      })
+      .catch(() => {});
+
     complaintAPI
-      .getAll()
+      .getMyComplaints()
       .then((res) => {
         const list = Array.isArray(res) ? res : res?.data?.complaints || [];
         const resolved = list.filter((c) => c.status === 'Resolved').length;
@@ -55,10 +62,10 @@ export default function LandingPage() {
           active,
         });
       })
-      .catch(() => {});
-  }, []);
-
-  const hasToken = Boolean(localStorage.getItem('token'));
+      .catch(() => {
+        setComplaints([]);
+      });
+  }, [hasToken]);
   const firstName = user?.name ? user.name.trim().split(' ')[0] : 'Sharath';
   const pad2 = (num) => String(num || 0).padStart(2, '0');
 
@@ -84,10 +91,10 @@ export default function LandingPage() {
           <div className="flex items-center gap-2.5">
             <img
               src="/logo.png"
-              alt="JenSetu Logo"
+              alt="JanSetu Logo"
               className="w-9 h-9 rounded-xl object-contain bg-white border border-slate-200/80 p-0.5 shadow-2xs"
             />
-            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">JenSetu</span>
+            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">JanSetu</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -131,10 +138,10 @@ export default function LandingPage() {
         {/* Greeting Header (No rounded AI badge) */}
         <div>
           <h1 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight leading-tight flex items-center gap-2">
-            Hello, {firstName} <span className="text-2xl">👋</span>
+            {hasToken ? `Hello, ${firstName} 👋` : 'Welcome to JanSetu 👋'}
           </h1>
           <p className="text-[15px] text-[#64748B] mt-1 font-medium">
-            Let&apos;s make your city better.
+            {hasToken ? "Let's make your city better." : 'AI & Geospatial Civic Issue Resolution Platform'}
           </p>
         </div>
 
@@ -245,69 +252,99 @@ export default function LandingPage() {
           </button>
         </div>
 
-        {/* Recent Complaints Section */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
-              Recent Complaints
-            </h2>
-            <button
-              type="button"
-              onClick={() => navigate(hasToken ? '/my-complaints' : '/explore')}
-              className="text-[13px] font-bold text-[#0B63F6] hover:underline"
-            >
-              See all
-            </button>
-          </div>
+        {/* If logged in: Your Personal Complaints; if not logged in: Personal Security & Sign In Callout */}
+        {hasToken ? (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
+                Your Complaints
+              </h2>
+              <button
+                type="button"
+                onClick={() => navigate('/my-complaints')}
+                className="text-[13px] font-bold text-[#0B63F6] hover:underline"
+              >
+                See all
+              </button>
+            </div>
 
-          <div className="bg-white rounded-[20px] border border-slate-100 shadow-[0_2px_12px_rgba(15,23,42,0.04)] divide-y divide-slate-100 overflow-hidden">
-            {complaints.length === 0 ? (
-              <div className="p-6 text-center text-sm text-[#64748B]">
-                No complaints reported yet. Tap &ldquo;Start Reporting&rdquo; above to add the first issue.
-              </div>
-            ) : (
-              complaints
-                .filter((c) => {
-                  if (selectedFilter === 'active')
-                    return c.status !== 'Resolved' && c.status !== 'Rejected';
-                  if (selectedFilter === 'resolved') return c.status === 'Resolved';
-                  return true;
-                })
-                .slice(0, 6)
-                .map((complaint, idx) => {
-                const cid = complaint.complaintId || complaint._id || complaint.id;
-                const pill = getStatusPill(complaint.status);
-                const reportNum = String(complaints.length - idx).padStart(3, '0');
-                const shortLocation =
-                  (complaint.location?.address || 'Nearby area').split(',')[0].trim() ||
-                  'Nearby area';
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-[0_2px_12px_rgba(15,23,42,0.04)] divide-y divide-slate-100 overflow-hidden">
+              {complaints.length === 0 ? (
+                <div className="p-6 text-center text-sm text-[#64748B]">
+                  You have not submitted any complaints yet. Tap &ldquo;Start Reporting&rdquo; above to report an issue.
+                </div>
+              ) : (
+                complaints
+                  .filter((c) => {
+                    if (selectedFilter === 'active')
+                      return c.status !== 'Resolved' && c.status !== 'Rejected';
+                    if (selectedFilter === 'resolved') return c.status === 'Resolved';
+                    return true;
+                  })
+                  .slice(0, 6)
+                  .map((complaint, idx) => {
+                    const cid = complaint.complaintId || complaint._id || complaint.id;
+                    const pill = getStatusPill(complaint.status);
+                    const reportNum = String(complaints.length - idx).padStart(3, '0');
+                    const shortLocation =
+                      (complaint.location?.address || 'Nearby area').split(',')[0].trim() ||
+                      'Nearby area';
 
-                return (
-                  <button
-                    key={cid || idx}
-                    type="button"
-                    onClick={() => navigate(hasToken ? `/complaint/${cid}` : '/login')}
-                    className="w-full p-4 text-left hover:bg-slate-50/80 transition-colors flex items-start justify-between gap-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-[15px] font-bold text-[#0F172A] truncate">
-                        {complaint.title || complaint.category || 'Civic Issue'}
-                      </h3>
-                      <p className="text-[13px] text-[#64748B] mt-1 truncate font-medium">
-                        {shortLocation} · Report #{reportNum}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-bold ${pill.className}`}
-                    >
-                      {pill.label}
-                    </span>
-                  </button>
-                );
-              })
-            )}
+                    return (
+                      <button
+                        key={cid || idx}
+                        type="button"
+                        onClick={() => navigate(`/complaint/${cid}`)}
+                        className="w-full p-4 text-left hover:bg-slate-50/80 transition-colors flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[15px] font-bold text-[#0F172A] truncate">
+                            {complaint.title || complaint.category || 'Civic Issue'}
+                          </h3>
+                          <p className="text-[13px] text-[#64748B] mt-1 truncate font-medium">
+                            {shortLocation} · Report #{reportNum}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-bold ${pill.className}`}
+                        >
+                          {pill.label}
+                        </span>
+                      </button>
+                    );
+                  })
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-[22px] border border-slate-100 p-6 shadow-[0_2px_12px_rgba(15,23,42,0.04)] text-center">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-50 text-[#0B63F6] flex items-center justify-center mb-3">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#0F172A]">
+              Personal & Secure Complaint Dashboard
+            </h3>
+            <p className="text-sm text-[#64748B] mt-1 max-w-sm mx-auto">
+              Sign in to view your individual civic complaints, track live resolution status, and receive department updates.
+            </p>
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="px-5 py-2.5 rounded-xl bg-[#0B63F6] text-white text-sm font-bold shadow-sm hover:bg-[#0956D9] transition-all"
+              >
+                Sign In to View
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition-all"
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Portal Switcher Cards */}
         <div className="grid grid-cols-2 gap-3 pt-1">
