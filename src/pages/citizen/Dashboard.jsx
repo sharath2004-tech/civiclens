@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
-      <Sidebar role="citizen" />
+      <Sidebar role={user?.role || 'citizen'} />
 
       <div className="flex-1 px-5 py-4 lg:p-8 w-full max-w-2xl mx-auto space-y-6">
         {/* Greeting Header */}

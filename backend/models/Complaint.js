@@ -74,7 +74,7 @@ const complaintSchema = new mongoose.Schema({
     url: { type: String, required: true },
     mediaType: { type: String, enum: ['image', 'video'], default: 'image' },
     publicId: { type: String, default: null },
-    storage: { type: String, enum: ['cloudinary', 'local'], default: 'cloudinary' }
+    storage: { type: String, default: 'cloudinary' }
   }],
   afterImages: [{
     type: String
@@ -83,7 +83,7 @@ const complaintSchema = new mongoose.Schema({
     url: { type: String, required: true },
     mediaType: { type: String, enum: ['image', 'video'], default: 'image' },
     publicId: { type: String, default: null },
-    storage: { type: String, enum: ['cloudinary', 'local'], default: 'cloudinary' }
+    storage: { type: String, default: 'cloudinary' }
   }],
   severity: {
     type: String,

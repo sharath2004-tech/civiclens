@@ -184,6 +184,53 @@ function captureFrameAndHash(sourceEl) {
   }
 }
 
+async function compressImageForUpload(file) {
+  if (!file || !(file instanceof File) || !file.type.startsWith('image/')) {
+    return file;
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const maxDim = 1400;
+      let w = img.naturalWidth || img.width || 800;
+      let h = img.naturalHeight || img.height || 600;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, w);
+      canvas.height = Math.max(1, h);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const cleanName = (file.name || 'report_photo.jpg').replace(/\.[^.]+$/, '.jpg');
+            resolve(new File([blob], cleanName, { type: 'image/jpeg' }));
+          } else {
+            resolve(file);
+          }
+        },
+        'image/jpeg',
+        0.82
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
 export default function ReportIssue() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -742,10 +789,19 @@ export default function ReportIssue() {
     setUploadProgress(0);
 
     try {
+      let uploadFile = formData.image;
+      if (uploadFile instanceof File && uploadFile.type.startsWith('image/')) {
+        try {
+          uploadFile = await compressImageForUpload(uploadFile);
+        } catch {
+          uploadFile = formData.image;
+        }
+      }
+
       let cloudinaryResult = null;
       if (isFrontendCloudinaryConfigured()) {
         try {
-          cloudinaryResult = await uploadDirectToCloudinary(formData.image, setUploadProgress);
+          cloudinaryResult = await uploadDirectToCloudinary(uploadFile, setUploadProgress);
         } catch (uploadErr) {
           console.warn('Frontend direct upload failed, delegating to backend:', uploadErr?.message);
           cloudinaryResult = null;
@@ -767,7 +823,7 @@ export default function ReportIssue() {
           location: formData.location,
           address: formData.address || `${mapPosition[0].toFixed(5)}, ${mapPosition[1].toFixed(5)}`,
           landmark: formData.landmark,
-          image: cloudinaryResult ? undefined : formData.image,
+          image: cloudinaryResult ? undefined : uploadFile,
           mediaUrl: cloudinaryResult?.url,
           mediaType: cloudinaryResult?.mediaType || formData.mediaType,
           publicId: cloudinaryResult?.publicId,

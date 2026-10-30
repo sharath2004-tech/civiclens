@@ -18,7 +18,15 @@ function buildComplaintIdQuery(idParam) {
 
 // All routes require admin/worker authentication
 router.use(protect);
-router.use(authorize('admin', 'worker'));
+router.use((req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'worker')) {
+    return next();
+  }
+  return res.status(403).json({
+    status: 'error',
+    message: `Access denied. User role '${req.user?.role}' is not authorized to access admin routes. Only 'admin' or 'worker' roles are allowed.`
+  });
+});
 
 // @route   PUT /api/admin/complaints/:id/status
 // @desc    Update complaint status

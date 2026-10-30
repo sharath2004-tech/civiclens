@@ -96,29 +96,29 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-24">
       {/* Clean Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <img
               src="/logo.png"
               alt="JanSetu Logo"
-              className="w-9 h-9 rounded-xl object-contain bg-white border border-slate-200/80 p-0.5 shadow-2xs"
+              className="w-8 h-8 rounded-xl object-contain bg-white border border-slate-200/80 p-0.5 shadow-2xs shrink-0"
             />
-            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">JanSetu</span>
+            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A] whitespace-nowrap">JanSetu</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <LanguageSelector variant="header" />
             <button
               type="button"
               onClick={() => navigate('/admin')}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors"
+              className="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors whitespace-nowrap"
             >
               {t('admin')}
             </button>
             <button
               type="button"
               onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
-              className="px-3.5 py-1.5 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-slate-800 transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-slate-800 transition-colors whitespace-nowrap shadow-2xs"
             >
               {hasToken ? t('dashboard') : t('signIn')}
             </button>
@@ -132,11 +132,11 @@ export default function LandingPage() {
                     window.location.replace('/login');
                   }
                 }}
-                className="px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-colors inline-flex items-center gap-1"
+                className="hidden sm:inline-flex px-2 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-colors items-center gap-1 shrink-0"
                 title={t('logout')}
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t('logout')}</span>
+                <span>{t('logout')}</span>
               </button>
             )}
           </div>

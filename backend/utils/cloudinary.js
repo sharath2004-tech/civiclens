@@ -155,7 +155,7 @@ async function uploadFileToCloudinary(file, folder = process.env.CLOUDINARY_FOLD
     }
 
     // Permanent MongoDB Data URI fallback (works 100% on Mobile, Vercel & Render ephemeral disk!)
-    if (fileBuffer && fileBuffer.length <= 6 * 1024 * 1024) {
+    if (fileBuffer && fileBuffer.length <= 12 * 1024 * 1024) {
       const mime = file.mimetype || (mediaType === 'video' ? 'video/webm' : 'image/jpeg');
       const dataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
       return {

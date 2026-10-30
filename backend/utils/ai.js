@@ -396,7 +396,62 @@ async function analyzeCivicIssue({ imageBase64, mimeType = 'image/jpeg', transcr
   const safeMime = mimeType && mimeType.startsWith('image/') ? mimeType : 'image/jpeg';
   const dataUri = cleanBase64 ? `data:${safeMime};base64,${cleanBase64}` : '';
 
-  // 1. For text-only prompts (transcript provided without image), Groq is ultra-fast (<0.8s)
+  // 1. PRIMARY: Google Gemini Vision API (Multimodal AI Issue Analysis)
+  const activeGeminiKey = (geminiApiKey || process.env.GEMINI_API_KEY || '').trim();
+  if (activeGeminiKey) {
+    const geminiModels = [
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-flash-lite',
+      'gemini-3.1-flash-lite'
+    ];
+    for (const gModel of geminiModels) {
+      try {
+        const parts = [{ text: prompt }];
+        if (cleanBase64) {
+          parts.push({
+            inline_data: {
+              mime_type: safeMime,
+              data: cleanBase64
+            }
+          });
+        }
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${encodeURIComponent(activeGeminiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: {
+                temperature: 0.1,
+                response_mime_type: 'application/json'
+              }
+            }),
+            signal: AbortSignal.timeout(12000)
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            console.log(`✅ Analyzed issue using Google Gemini Vision (${gModel})`);
+            return normalizeLlmResult(extractJsonObject(rawText), fallback, transcript, language, `gemini-vision (${gModel})`);
+          }
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          console.warn(`⚠️ Gemini ${gModel} status ${response.status}:`, errData?.error?.message);
+        }
+      } catch (err) {
+        console.warn(`⚠️ Gemini model ${gModel} call failed:`, err.message);
+      }
+    }
+  }
+
+  // 2. For text-only prompts (transcript provided without image), Groq is ultra-fast (<0.8s)
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (groqKey && !dataUri && transcript) {
     const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
@@ -433,7 +488,7 @@ async function analyzeCivicIssue({ imageBase64, mimeType = 'image/jpeg', transcr
     }
   }
 
-  // 2. Zero-Key Cloud Vision LLM (Pollinations OpenAI Vision endpoint — free & fast)
+  // 3. Fallback: Zero-Key Cloud Vision LLM (Pollinations OpenAI Vision endpoint — free & fast)
   if (dataUri) {
     try {
       const response = await fetch('https://text.pollinations.ai/openai', {
@@ -469,54 +524,6 @@ async function analyzeCivicIssue({ imageBase64, mimeType = 'image/jpeg', transcr
       }
     } catch (err) {
       console.warn('⚠️ Cloud vision call failed, using Computer Vision metrics:', err.message);
-    }
-  }
-
-  // 2. Try Google Gemini Vision if GEMINI_API_KEY is provided
-  const activeGeminiKey = (geminiApiKey || process.env.GEMINI_API_KEY || '').trim();
-  if (activeGeminiKey) {
-    const geminiModels = [
-      'gemini-2.5-flash-lite',
-      'gemini-3.1-flash-lite-preview',
-      'gemini-3-flash-preview',
-      'gemini-2.5-flash',
-      'gemma-4-26b-a4b-it'
-    ];
-    for (const gModel of geminiModels) {
-      try {
-        const parts = [{ text: prompt }];
-        if (cleanBase64) {
-          parts.push({
-            inline_data: {
-              mime_type: safeMime,
-              data: cleanBase64
-            }
-          });
-        }
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${encodeURIComponent(activeGeminiKey)}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts }],
-              generationConfig: { temperature: 0.1 }
-            }),
-            signal: AbortSignal.timeout(10000)
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            return normalizeLlmResult(extractJsonObject(rawText), fallback, transcript, language, `gemini-vision (${gModel})`);
-          }
-        }
-      } catch (err) {
-        console.warn(`⚠️ Gemini model ${gModel} call failed:`, err.message);
-      }
     }
   }
 
