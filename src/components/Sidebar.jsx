@@ -45,6 +45,16 @@ export default function Sidebar({ role = 'citizen' }) {
 
   const menuItems = role === 'admin' ? adminMenu : citizenMenu;
 
+  const handleLogout = () => {
+    if (!window.confirm('Are you sure you want to log out?')) return;
+    authAPI.logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsMobileMenuOpen(false);
+    // Full reload so the app's in-memory user state is cleared
+    window.location.replace('/login');
+  };
+
   return (
     <>
       {/* Clean Mobile Top Brand Bar */}
@@ -61,7 +71,7 @@ export default function Sidebar({ role = 'citizen' }) {
           <span className="font-bold text-gray-900 text-base tracking-tight">CivicLens</span>
         </div>
 
-        {role === 'admin' && (
+        {role === 'admin' ? (
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -69,6 +79,16 @@ export default function Sidebar({ role = 'citizen' }) {
             aria-label="Toggle Menu"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+            aria-label="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
           </button>
         )}
       </header>
@@ -180,11 +200,7 @@ export default function Sidebar({ role = 'citizen' }) {
 
         <button
           type="button"
-          onClick={() => {
-            authAPI.logout();
-            navigate('/');
-            setIsMobileMenuOpen(false);
-          }}
+          onClick={handleLogout}
           className="mt-4 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:bg-red-500 hover:text-white transition-all"
         >
           <LogOut className="w-4 h-4 shrink-0" />

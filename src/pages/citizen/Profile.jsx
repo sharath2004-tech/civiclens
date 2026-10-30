@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
-import { User, Mail, Phone, MapPin, Edit2, Save, X, Lock, Loader2 } from 'lucide-react';
-import { userAPI } from '../../services/api';
+import { User, Mail, Phone, MapPin, Edit2, Save, X, Lock, Loader2, LogOut } from 'lucide-react';
+import { userAPI, authAPI } from '../../services/api';
 
 export default function Profile() {
   const [loading, setLoading] = useState(true);
@@ -359,6 +359,22 @@ export default function Profile() {
               </button>
             </form>
           </div>
+
+          {/* Logout */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!window.confirm('Are you sure you want to log out?')) return;
+              authAPI.logout();
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.replace('/login');
+            }}
+            className="w-full mt-6 py-3.5 rounded-2xl bg-red-50 text-red-600 border border-red-200 font-bold flex items-center justify-center gap-2 hover:bg-red-100 active:scale-[0.99] transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            Log Out
+          </button>
         </div>
       </div>
     </div>
