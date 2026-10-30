@@ -29,10 +29,11 @@
   }
 }
 
-/* Prevent mobile top header overlap on all pages & constrain Leaflet z-index */
+/* Prevent mobile top header & bottom nav overlap on all pages & constrain Leaflet z-index */
 @media (max-width: 1023px) {
   .flex.min-h-screen > .flex-1 {
-    padding-top: 4.5rem !important;
+    padding-top: 3.75rem !important;
+    padding-bottom: 5.5rem !important;
   }
 }
 

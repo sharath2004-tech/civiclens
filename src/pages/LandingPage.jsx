@@ -3,26 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import {
   MapPin,
   Camera,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2,
+  ArrowUpRight,
   ArrowRight,
-  Mic,
-  Video,
-  Layers,
+  Map as MapIcon,
+  Home,
+  PlusCircle,
+  ClipboardList,
+  User,
   Building2,
   UserCheck,
-  Compass,
-  AlertTriangle,
-  Trash2,
-  Droplets,
-  Lightbulb,
-  Wrench,
 } from 'lucide-react';
-import { complaintAPI } from '../services/api';
+import { complaintAPI, userAPI } from '../services/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  });
+  const [complaints, setComplaints] = useState([]);
   const [liveStats, setLiveStats] = useState({
     total: 0,
     resolved: 0,
@@ -30,12 +32,21 @@ export default function LandingPage() {
   });
 
   useEffect(() => {
+    if (localStorage.getItem('token')) {
+      userAPI
+        .getProfile()
+        .then((u) => {
+          if (u) setUser(u);
+        })
+        .catch(() => {});
+    }
     complaintAPI
       .getAll()
       .then((res) => {
         const list = Array.isArray(res) ? res : res?.data?.complaints || [];
         const resolved = list.filter((c) => c.status === 'Resolved').length;
         const active = list.filter((c) => c.status !== 'Resolved' && c.status !== 'Rejected').length;
+        setComplaints(list);
         setLiveStats({
           total: list.length,
           resolved,
@@ -46,238 +57,284 @@ export default function LandingPage() {
   }, []);
 
   const hasToken = Boolean(localStorage.getItem('token'));
+  const firstName = user?.name ? user.name.trim().split(' ')[0] : 'Sharath';
+  const pad2 = (num) => String(num || 0).padStart(2, '0');
 
-  const categories = [
-    { name: 'Potholes & Roads', icon: AlertTriangle, color: 'bg-amber-50 text-amber-700 border-amber-200' },
-    { name: 'Garbage & Waste', icon: Trash2, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    { name: 'Waterlogging', icon: Droplets, color: 'bg-blue-50 text-blue-700 border-blue-200' },
-    { name: 'Streetlights', icon: Lightbulb, color: 'bg-purple-50 text-purple-700 border-purple-200' },
-    { name: 'Water Leakage', icon: Wrench, color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-    { name: 'Drainage & Sewers', icon: Layers, color: 'bg-rose-50 text-rose-700 border-rose-200' },
-  ];
+  const getStatusPill = (status) => {
+    switch (status) {
+      case 'Resolved':
+        return { label: 'Resolved', className: 'bg-[#E6F7ED] text-[#15803D]' };
+      case 'In Progress':
+      case 'Under Review':
+        return { label: 'Under Review', className: 'bg-[#FFF3E6] text-[#C2410C]' };
+      case 'Rejected':
+        return { label: 'Rejected', className: 'bg-[#FEE2E2] text-[#B91C1C]' };
+      default:
+        return { label: 'Submitted', className: 'bg-[#E6F2FF] text-[#0284C7]' };
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-gray-900 flex flex-col justify-between">
-      {/* Clean Sticky Glass Navbar */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-24">
+      {/* Clean Top Header */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
+        <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              <MapPin className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 rounded-xl bg-[#0F2942] flex items-center justify-center shadow-xs">
+              <MapPin className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <span className="text-lg font-extrabold tracking-tight text-gray-900">CivicLens</span>
-              <span className="hidden sm:inline-block ml-2 text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                AI Civic Portal
-              </span>
-            </div>
+            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">CivicLens</span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
-              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all"
+              onClick={() => navigate('/admin')}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors"
             >
-              {hasToken ? 'Dashboard' : 'Sign In'}
+              Admin
             </button>
             <button
               type="button"
-              onClick={() => navigate(hasToken ? '/report' : '/register')}
-              className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs sm:text-sm font-bold hover:bg-gray-800 transition-all shadow-xs flex items-center gap-1.5"
+              onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
+              className="px-3.5 py-1.5 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-slate-800 transition-colors"
             >
-              {hasToken ? 'Report Issue' : 'Get Started'}
-              <ArrowRight className="w-3.5 h-3.5" />
+              {hasToken ? 'Dashboard' : 'Sign In'}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10 lg:py-16">
-          <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 sm:p-10 lg:p-12">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold mb-4">
-                <Sparkles className="w-3.5 h-3.5" />
-                Powered by Gemini & Qwen Vision + Multilingual Voice AI
-              </div>
+      {/* Main Container Matching Suggested UI */}
+      <main className="max-w-xl mx-auto px-5 pt-5 space-y-6">
+        {/* Greeting Header (No rounded AI badge) */}
+        <div>
+          <h1 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight leading-tight flex items-center gap-2">
+            Hello, {firstName} <span className="text-2xl">👋</span>
+          </h1>
+          <p className="text-[15px] text-[#64748B] mt-1 font-medium">
+            Let&apos;s make your city better.
+          </p>
+        </div>
 
-              <h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
-                Snap the Issue. Speak in Your Language.{' '}
-                <span className="text-secondary">Get It Fixed.</span>
-              </h1>
-
-              <p className="mt-4 text-sm sm:text-base text-gray-600 leading-relaxed max-w-2xl">
-                Report potholes, garbage dumps, waterlogging, or broken streetlights in seconds. Our AI
-                automatically classifies the photo or 10–20s video, translates your voice note, and merges
-                duplicate reports within a 30-meter radius.
+        {/* Hero Blue Card: Report an Issue */}
+        <button
+          type="button"
+          onClick={() => navigate(hasToken ? '/report' : '/login')}
+          className="w-full text-left rounded-[22px] bg-[#0B63F6] hover:bg-[#0956D9] active:scale-[0.99] transition-all p-5 text-white shadow-[0_10px_25px_-5px_rgba(11,99,246,0.38)] relative overflow-hidden"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[21px] font-bold tracking-tight leading-snug">
+                Report an Issue
+              </h2>
+              <p className="text-[14px] text-white/90 mt-1.5 leading-relaxed max-w-[270px] font-normal">
+                Capture a photo or video. Let AI identify the problem.
               </p>
-
-              {/* Quick Portal Action Grid */}
-              <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate(hasToken ? '/report' : '/login')}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-secondary text-white font-bold shadow-md hover:bg-secondary-600 active:scale-[0.99] transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                      <Camera className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold">Report Issue</div>
-                      <div className="text-[11px] text-blue-100 font-medium">3-Step Fast Capture</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 shrink-0" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-gray-900 font-bold active:scale-[0.99] transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center text-primary shrink-0">
-                      <UserCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold">Citizen Portal</div>
-                      <div className="text-[11px] text-gray-500 font-medium">Track My Complaints</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin')}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-gray-900 font-bold active:scale-[0.99] transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center text-indigo-600 shrink-0">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold">Authority Admin</div>
-                      <div className="text-[11px] text-gray-500 font-medium">Command Dashboard</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
-                </button>
-              </div>
             </div>
-
-            {/* Live Platform Metrics Strip */}
-            <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
-                <div className="text-2xl font-extrabold text-gray-900">{liveStats.total}</div>
-                <div className="text-xs font-semibold text-gray-500">Live Synced Reports</div>
-              </div>
-              <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
-                <div className="text-2xl font-extrabold text-amber-600">{liveStats.active}</div>
-                <div className="text-xs font-semibold text-gray-500">Active / In Queue</div>
-              </div>
-              <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
-                <div className="text-2xl font-extrabold text-emerald-600">{liveStats.resolved}</div>
-                <div className="text-xs font-semibold text-gray-500">Verified Resolved</div>
-              </div>
-              <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
-                <div className="text-2xl font-extrabold text-secondary">30m</div>
-                <div className="text-xs font-semibold text-gray-500">Smart Radius Auto-Merge</div>
-              </div>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white/90 shrink-0">
+              <ArrowUpRight className="w-5 h-5" />
             </div>
           </div>
-        </section>
 
-        {/* Clean 3-Step Workflow Section */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-extrabold text-gray-900">How CivicLens Works</h2>
+          <div className="mt-5 inline-flex items-center gap-2 text-[14px] font-bold text-white">
+            <Camera className="w-4 h-4" />
+            <span>Start Reporting</span>
+          </div>
+        </button>
+
+        {/* 3 Compact Stat Cards: Reports | Active | Resolved */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-[18px] p-4 border border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+            <div className="text-[24px] font-extrabold text-[#0B63F6] leading-none">
+              {pad2(liveStats.total)}
+            </div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-2">Reports</div>
+          </div>
+
+          <div className="bg-white rounded-[18px] p-4 border border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+            <div className="text-[24px] font-extrabold text-[#D97706] leading-none">
+              {pad2(liveStats.active)}
+            </div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-2">Active</div>
+          </div>
+
+          <div className="bg-white rounded-[18px] p-4 border border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+            <div className="text-[24px] font-extrabold text-[#059669] leading-none">
+              {pad2(liveStats.resolved)}
+            </div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-2">Resolved</div>
+          </div>
+        </div>
+
+        {/* Issues Near You Section */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
+              Issues Near You
+            </h2>
             <button
               type="button"
               onClick={() => navigate('/explore')}
-              className="inline-flex items-center gap-1 text-xs font-bold text-secondary hover:underline"
+              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#0B63F6] hover:underline"
             >
-              <Compass className="w-3.5 h-3.5" /> Explore Live Map →
+              <span>View map</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-secondary flex items-center justify-center mb-3 font-bold">
-                <Video className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold uppercase tracking-wider text-secondary mb-1">Step 1</div>
-              <h3 className="text-base font-bold text-gray-900 mb-1">Snap Photo or 10–20s Video</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Capture the issue directly from your phone camera. Our viewfinder extracts keyframes and
-                perceptual hashes in under 1 millisecond.
-              </p>
+          <button
+            type="button"
+            onClick={() => navigate('/explore')}
+            className="w-full rounded-[20px] bg-[#EAF1FB] hover:bg-[#E1ECFA] active:scale-[0.99] transition-all py-7 px-5 flex flex-col items-center justify-center text-center border border-[#D8E6F8]"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[#0B63F6] mb-1.5">
+              <MapIcon className="w-6 h-6" />
             </div>
+            <div className="text-[16px] font-extrabold text-[#1E293B]">
+              Interactive City Map
+            </div>
+            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
+              Nearby civic complaints and hotspots
+            </div>
+          </button>
+        </div>
 
-            <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 font-bold">
-                <Mic className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold uppercase tracking-wider text-purple-600 mb-1">Step 2</div>
-              <h3 className="text-base font-bold text-gray-900 mb-1">AI Vision & Voice Auto-Fill</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Speak in Hindi, Punjabi, Telugu, Tamil, or English. AI analyzes the visual evidence and audio
-                to auto-fill the title, category, and severity.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 font-bold">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1">Step 3</div>
-              <h3 className="text-base font-bold text-gray-900 mb-1">30m Deduplication & Tracking</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Reports within 30 meters automatically merge into a single high-priority ticket for municipal
-                engineers with before/after proof.
-              </p>
-            </div>
+        {/* Recent Complaints Section */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
+              Recent Complaints
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate(hasToken ? '/my-complaints' : '/explore')}
+              className="text-[13px] font-bold text-[#0B63F6] hover:underline"
+            >
+              See all
+            </button>
           </div>
-        </section>
 
-        {/* Supported Civic Issue Categories */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-12">
-          <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 mb-4">
-            Supported Civic Issue Categories
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {categories.map((cat) => {
-              const Icon = cat.icon;
-              return (
-                <button
-                  key={cat.name}
-                  type="button"
-                  onClick={() => navigate(hasToken ? '/report' : '/login')}
-                  className={`flex flex-col items-start p-4 rounded-2xl border ${cat.color} hover:shadow-sm transition-all text-left`}
-                >
-                  <Icon className="w-5 h-5 mb-2" />
-                  <span className="text-xs font-bold leading-snug">{cat.name}</span>
-                </button>
-              );
-            })}
+          <div className="bg-white rounded-[20px] border border-slate-100 shadow-[0_2px_12px_rgba(15,23,42,0.04)] divide-y divide-slate-100 overflow-hidden">
+            {complaints.length === 0 ? (
+              <div className="p-6 text-center text-sm text-[#64748B]">
+                No complaints reported yet. Tap &ldquo;Start Reporting&rdquo; above to add the first issue.
+              </div>
+            ) : (
+              complaints.slice(0, 4).map((complaint, idx) => {
+                const cid = complaint._id || complaint.id;
+                const pill = getStatusPill(complaint.status);
+                const reportNum = String(complaints.length - idx).padStart(3, '0');
+                const shortLocation =
+                  (complaint.location?.address || 'Nearby area').split(',')[0].trim() ||
+                  'Nearby area';
+
+                return (
+                  <button
+                    key={cid || idx}
+                    type="button"
+                    onClick={() => navigate(hasToken ? `/complaints/${cid}` : '/login')}
+                    className="w-full p-4 text-left hover:bg-slate-50/80 transition-colors flex items-start justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[15px] font-bold text-[#0F172A] truncate">
+                        {complaint.title || complaint.category || 'Civic Issue'}
+                      </h3>
+                      <p className="text-[13px] text-[#64748B] mt-1 truncate font-medium">
+                        {shortLocation} · Report #{reportNum}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-bold ${pill.className}`}
+                    >
+                      {pill.label}
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
-        </section>
+        </div>
+
+        {/* Portal Switcher Cards */}
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
+            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
+          >
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B63F6] flex items-center justify-center shrink-0">
+              <UserCheck className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold text-[#0F172A] truncate">Citizen Portal</div>
+              <div className="text-[11px] text-[#64748B] truncate">My Reports</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
+          >
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold text-[#0F172A] truncate">Authority Admin</div>
+              <div className="text-[11px] text-[#64748B] truncate">Command Center</div>
+            </div>
+          </button>
+        </div>
       </main>
 
-      {/* Clean Minimal Footer */}
-      <footer className="bg-white border-t border-gray-200 py-5 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
-          <div className="flex items-center gap-2 font-bold text-gray-800">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            CivicLens Smart Municipal Governance Platform
-          </div>
-          <div>Citizen Web • Android APK • Authority Command Center</div>
-        </div>
-      </footer>
+      {/* Bottom 5-Icon Navigation Bar */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 h-16 px-4 flex items-center justify-around max-w-xl mx-auto">
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard')}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-[#0B63F6]"
+        >
+          <Home className="w-5 h-5 stroke-[2.4]" />
+          <span className="text-[10px] font-bold">Home</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate('/explore')}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600"
+        >
+          <MapIcon className="w-5 h-5 stroke-[1.8]" />
+          <span className="text-[10px] font-medium">Map</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(hasToken ? '/report' : '/login')}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-500 hover:text-[#0B63F6]"
+        >
+          <PlusCircle className="w-6 h-6 stroke-[2]" />
+          <span className="text-[10px] font-semibold">Report</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(hasToken ? '/my-complaints' : '/login')}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600"
+        >
+          <ClipboardList className="w-5 h-5 stroke-[1.8]" />
+          <span className="text-[10px] font-medium">Complaints</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(hasToken ? '/profile' : '/login')}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600"
+        >
+          <User className="w-5 h-5 stroke-[1.8]" />
+          <span className="text-[10px] font-medium">Profile</span>
+        </button>
+      </nav>
     </div>
   );
 }
