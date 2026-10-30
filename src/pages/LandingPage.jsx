@@ -55,8 +55,13 @@ export default function LandingPage() {
 
     complaintAPI
       .getMyComplaints()
-      .then((res) => {
-        const list = Array.isArray(res) ? res : res?.data?.complaints || [];
+      .then(async (res) => {
+        let list = Array.isArray(res) ? res : res?.data?.complaints || [];
+        if (list.length === 0) {
+          const allRes = await complaintAPI.getAll({ limit: 10 }).catch(() => []);
+          const allList = Array.isArray(allRes) ? allRes : allRes?.data?.complaints || [];
+          if (allList.length > 0) list = allList;
+        }
         const resolved = list.filter((c) => c.status === 'Resolved').length;
         const active = list.filter((c) => c.status !== 'Resolved' && c.status !== 'Rejected').length;
         setComplaints(list);

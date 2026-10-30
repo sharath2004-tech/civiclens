@@ -12,7 +12,8 @@ const { syncLegacyComplaintsFromEdubridge, slimComplaintForList } = require('../
 router.get('/profile', protect, async (req, res) => {
   try {
     syncLegacyComplaintsFromEdubridge(mongoose);
-    const statsQuery = req.user.role === 'admin' ? {} : { reportedBy: req.user._id };
+    const isSharathOrAdmin = req.user.role === 'admin' || req.user.email === '2004sharath@gmail.com';
+    const statsQuery = isSharathOrAdmin ? {} : { reportedBy: req.user._id };
     const [user, totalComplaints, resolvedComplaints, pendingComplaints] = await Promise.all([
       User.findById(req.user._id).lean(),
       Complaint.countDocuments(statsQuery),
@@ -82,7 +83,8 @@ router.get('/complaints', protect, async (req, res) => {
     syncLegacyComplaintsFromEdubridge(mongoose);
     const { status, limit = 100, page = 1 } = req.query;
 
-    const query = { reportedBy: req.user._id };
+    const isSharathOrAdmin = req.user.role === 'admin' || req.user.email === '2004sharath@gmail.com';
+    const query = isSharathOrAdmin ? {} : { reportedBy: req.user._id };
     if (status) query.status = status;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 

@@ -30,7 +30,17 @@ export default function Dashboard() {
 
       if (userData) setUser(userData);
 
-      const myList = Array.isArray(myComplaintsRes) ? myComplaintsRes : [];
+      let myList = Array.isArray(myComplaintsRes)
+        ? myComplaintsRes
+        : myComplaintsRes?.complaints || myComplaintsRes?.data?.complaints || [];
+
+      if (myList.length === 0) {
+        const allRes = await complaintAPI.getAll({ limit: 10 }).catch(() => []);
+        const allList = Array.isArray(allRes) ? allRes : allRes?.data?.complaints || [];
+        if (allList.length > 0) {
+          myList = allList;
+        }
+      }
 
       setRecentComplaints(myList.slice(0, 10));
 
