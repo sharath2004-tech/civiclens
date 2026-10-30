@@ -81,9 +81,11 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#0F2942] flex items-center justify-center shadow-xs">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="CivicLens Logo"
+              className="w-9 h-9 rounded-xl object-contain bg-white border border-slate-200/80 p-0.5 shadow-2xs"
+            />
             <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">CivicLens</span>
           </div>
 

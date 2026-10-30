@@ -218,6 +218,23 @@ export default function ReportIssue() {
   const [aiAnalysis, setAiAnalysis] = useState(null);
 
   useEffect(() => {
+    window.__handleStepBack = () => {
+      if (captureMode) {
+        stopMediaStream();
+        return 'HANDLED';
+      }
+      if (step > 1) {
+        setStep((prev) => prev - 1);
+        return 'HANDLED';
+      }
+      return 'UNHANDLED';
+    };
+    return () => {
+      delete window.__handleStepBack;
+    };
+  }, [step, captureMode]);
+
+  useEffect(() => {
     getCurrentLocation(true);
     return () => {
       stopMediaStream();

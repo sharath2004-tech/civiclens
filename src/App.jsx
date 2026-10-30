@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -19,6 +19,36 @@ import Workers from './pages/admin/Workers';
 import Analytics from './pages/admin/Analytics';
 import Settings from './pages/admin/Settings';
 
+function BackButtonGuard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    window.__handleAndroidBack = () => {
+      if (typeof window.__handleStepBack === 'function') {
+        const stepHandled = window.__handleStepBack();
+        if (stepHandled === 'HANDLED') return 'HANDLED';
+      }
+      const path = location.pathname;
+      if (path === '/' || path === '/dashboard') {
+        return 'ROOT';
+      }
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        const hasToken = Boolean(localStorage.getItem('token'));
+        navigate(hasToken ? '/dashboard' : '/', { replace: true });
+      }
+      return 'HANDLED';
+    };
+    return () => {
+      delete window.__handleAndroidBack;
+    };
+  }, [location.pathname, navigate]);
+
+  return null;
+}
+
 function App() {
   const [user, setUser] = useState(() => {
     try {
@@ -31,6 +61,7 @@ function App() {
 
   return (
     <Router>
+      <BackButtonGuard />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
