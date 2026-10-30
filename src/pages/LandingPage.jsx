@@ -317,7 +317,7 @@ export default function LandingPage() {
         )}
 
         {/* Portal Switcher Card - Only show if logged in as admin/worker */}
-        {user?.role === 'admin' || user?.role === 'worker' ? (
+        {hasToken && (user?.role === 'admin' || user?.role === 'worker') ? (
           <div className="grid grid-cols-2 gap-3 pt-1">
             <button
               type="button"

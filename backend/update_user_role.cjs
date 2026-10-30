@@ -9,7 +9,7 @@ async function updateUserRole() {
 
     // Update user role
     const email = 'arath@gmail.com'; // Change this to your email
-    const newRole = 'admin'; // Change to 'citizen', 'admin', or 'worker'
+    const newRole = 'citizen'; // Change to 'citizen', 'admin', or 'worker'
 
     const user = await User.findOneAndUpdate(
       { email: email.toLowerCase() },
