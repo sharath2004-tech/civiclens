@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Map, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Camera, Map, ArrowUpRight, Loader2, LogOut } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import { complaintAPI, userAPI } from '../../services/api';
 
@@ -77,12 +77,28 @@ export default function Dashboard() {
       <Sidebar role="citizen" />
 
       <div className="flex-1 px-5 py-4 lg:p-8 w-full max-w-2xl mx-auto space-y-6">
-        {/* Greeting Header */}
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
-            Hello, {firstName} <span>👋</span>
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Let&apos;s make your city better.</p>
+        {/* Greeting Header & Logout */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+              Hello, {firstName} <span>👋</span>
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Let&apos;s make your city better.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.replace('/login');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200/80 shadow-2xs transition-colors shrink-0"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
         </div>
 
         {/* Vibrant Blue Hero Card: Report an Issue */}

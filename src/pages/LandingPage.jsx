@@ -12,6 +12,7 @@ import {
   User,
   Building2,
   UserCheck,
+  LogOut,
 } from 'lucide-react';
 import { complaintAPI, userAPI } from '../services/api';
 
@@ -104,6 +105,23 @@ export default function LandingPage() {
             >
               {hasToken ? 'Dashboard' : 'Sign In'}
             </button>
+            {hasToken && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to log out?')) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.replace('/login');
+                  }
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-colors inline-flex items-center gap-1"
+                title="Logout"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            )}
           </div>
         </div>
       </header>

@@ -72,14 +72,25 @@ export default function Sidebar({ role = 'citizen' }) {
         </div>
 
         {role === 'admin' ? (
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-xl text-gray-700 hover:bg-gray-200/60"
-            aria-label="Toggle Menu"
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+              aria-label="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-xl text-gray-700 hover:bg-gray-200/60"
+              aria-label="Toggle Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         ) : (
           <button
             type="button"

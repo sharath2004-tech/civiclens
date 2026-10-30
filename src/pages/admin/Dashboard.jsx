@@ -13,6 +13,7 @@ import {
   Film,
   Building2,
   UserCheck,
+  LogOut,
 } from 'lucide-react';
 import { complaintAPI } from '../../services/api';
 import { resolveMediaUrl, isVideoMedia } from '../../lib/utils';
@@ -95,15 +96,31 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={fetchComplaints}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs shrink-0"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#0B63F6]' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={fetchComplaints}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#0B63F6]' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Are you sure you want to log out?')) {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  window.location.replace('/login');
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-600 hover:bg-red-100 shadow-2xs shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
 
         {/* Hero Blue Card: Manage Complaints */}
