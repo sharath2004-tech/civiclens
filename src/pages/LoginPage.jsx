@@ -44,7 +44,7 @@ export default function LoginPage({ setUser }) {
             alt="Logo"
             className="w-20 h-20 bg-white rounded-2xl object-contain p-1.5 shadow-lg mx-auto mb-4"
           />
-          <h1 className="text-3xl font-bold text-white">Welcome to CivicLens</h1>
+          <h1 className="text-3xl font-bold text-white">Welcome to JenSetu</h1>
           <p className="text-white/80 mt-2">Sign in to continue</p>
         </div>
 

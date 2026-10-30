@@ -65,10 +65,10 @@ export default function Sidebar({ role = 'citizen' }) {
         >
           <img
             src="/logo.png"
-            alt="CivicLens Logo"
+            alt="JenSetu Logo"
             className="w-9 h-9 bg-white rounded-xl object-contain border border-slate-200/80 p-0.5 shadow-2xs"
           />
-          <span className="font-bold text-gray-900 text-base tracking-tight">CivicLens</span>
+          <span className="font-bold text-gray-900 text-base tracking-tight">JenSetu</span>
         </div>
 
         {role === 'admin' ? (
@@ -166,11 +166,11 @@ export default function Sidebar({ role = 'citizen' }) {
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
-              alt="CivicLens Logo"
+              alt="JenSetu Logo"
               className="w-10 h-10 bg-white rounded-xl object-contain p-0.5 shadow-sm"
             />
             <div>
-              <h1 className="text-lg font-bold leading-tight">CivicLens</h1>
+              <h1 className="text-lg font-bold leading-tight">JenSetu</h1>
               <p className="text-xs text-gray-300 capitalize">{role} Portal</p>
             </div>
           </div>

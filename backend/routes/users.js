@@ -12,11 +12,13 @@ const { syncLegacyComplaintsFromEdubridge, slimComplaintForList } = require('../
 router.get('/profile', protect, async (req, res) => {
   try {
     syncLegacyComplaintsFromEdubridge(mongoose);
+    const statsQuery = req.user.role === 'admin' ? {} : { reportedBy: req.user._id };
     const [user, totalComplaints, resolvedComplaints, pendingComplaints] = await Promise.all([
       User.findById(req.user._id).lean(),
-      Complaint.countDocuments({}),
-      Complaint.countDocuments({ status: 'Resolved' }),
+      Complaint.countDocuments(statsQuery),
+      Complaint.countDocuments({ ...statsQuery, status: 'Resolved' }),
       Complaint.countDocuments({
+        ...statsQuery,
         status: { $in: ['Submitted', 'Under Review', 'Assigned', 'In Progress'] }
       })
     ]);
@@ -77,10 +79,11 @@ router.put('/profile', protect, async (req, res) => {
 // @access  Private
 router.get('/complaints', protect, async (req, res) => {
   try {
-    await syncLegacyComplaintsFromEdubridge(mongoose);
+    syncLegacyComplaintsFromEdubridge(mongoose);
     const { status, limit = 100, page = 1 } = req.query;
 
-    const query = status ? { status } : {};
+    const query = { reportedBy: req.user._id };
+    if (status) query.status = status;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const complaints = (await Complaint.find(query)

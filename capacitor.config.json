@@ -1,6 +1,6 @@
 {
   "appId": "com.civiclens.app",
-  "appName": "CivicLens",
+  "appName": "JenSetu",
   "webDir": "dist",
   "server": {
     "androidScheme": "http",

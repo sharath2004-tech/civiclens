@@ -84,10 +84,10 @@ export default function LandingPage() {
           <div className="flex items-center gap-2.5">
             <img
               src="/logo.png"
-              alt="CivicLens Logo"
+              alt="JenSetu Logo"
               className="w-9 h-9 rounded-xl object-contain bg-white border border-slate-200/80 p-0.5 shadow-2xs"
             />
-            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">CivicLens</span>
+            <span className="text-[17px] font-extrabold tracking-tight text-[#0F172A]">JenSetu</span>
           </div>
 
           <div className="flex items-center gap-2">

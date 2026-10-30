@@ -21,19 +21,14 @@ export default function Dashboard() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [userData, myComplaintsRes, allComplaintsRes] = await Promise.all([
+      const [userData, myComplaintsRes] = await Promise.all([
         userAPI.getProfile().catch(() => null),
         complaintAPI.getMyComplaints().catch(() => []),
-        complaintAPI.getAll().catch(() => ({ data: { complaints: [] } })),
       ]);
 
       if (userData) setUser(userData);
 
-      const allList = Array.isArray(allComplaintsRes)
-        ? allComplaintsRes
-        : allComplaintsRes?.data?.complaints || [];
-      const myList =
-        Array.isArray(myComplaintsRes) && myComplaintsRes.length > 0 ? myComplaintsRes : allList;
+      const myList = Array.isArray(myComplaintsRes) ? myComplaintsRes : [];
 
       setRecentComplaints(myList.slice(0, 10));
 
