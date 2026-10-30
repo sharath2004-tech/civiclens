@@ -42,6 +42,29 @@ const User = require('./models/User');
 const { startTelegramBotPolling } = require('./utils/telegram');
 const { syncLegacyComplaintsFromEdubridge } = require('./utils/deduplication');
 
+// Ensure DB is connected before any API route runs (crucial for Vercel Serverless Functions)
+let dbConnectPromise = null;
+const ensureDBConnected = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  if (!dbConnectPromise) {
+    dbConnectPromise = connectDB().catch((err) => {
+      dbConnectPromise = null;
+      throw err;
+    });
+  }
+  await dbConnectPromise;
+};
+
+app.use('/api', async (req, res, next) => {
+  if (req.path === '/health') return next();
+  try {
+    await ensureDBConnected();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -108,21 +131,26 @@ const connectDB = async () => {
       .catch(() => {});
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
-    process.exit(1);
+    if (require.main === module) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 
-// Start server
+// Start server when run directly (Local / Render)
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
-    console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
-    startTelegramBotPolling(Complaint);
+if (require.main === module) {
+  ensureDBConnected().then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+      startTelegramBotPolling(Complaint);
+    });
   });
-});
+}
 
 // Keep server alive on transient background network/polling rejections
 process.on('unhandledRejection', (err) => {
@@ -132,3 +160,5 @@ process.on('unhandledRejection', (err) => {
 process.on('uncaughtException', (err) => {
   console.warn('⚠️ Uncaught Exception (ignored):', err?.message || err);
 });
+
+module.exports = app;

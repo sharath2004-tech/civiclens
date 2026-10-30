@@ -16,6 +16,7 @@ export default function Dashboard() {
   });
   const [stats, setStats] = useState({ total: 0, active: 0, resolved: 0 });
   const [recentComplaints, setRecentComplaints] = useState([]);
+  const [selectedFilter, setSelectedFilter] = useState('all'); // 'all' | 'active' | 'resolved'
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
@@ -103,37 +104,52 @@ export default function Dashboard() {
           </div>
         </button>
 
-        {/* 3 Clean White Stat Cards */}
+        {/* 3 Clean Interactive Stat Filter Buttons */}
         <div className="grid grid-cols-3 gap-3">
-          <div
-            onClick={() => navigate('/my-complaints')}
-            className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/80 cursor-pointer"
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('all')}
+            className={`text-left bg-white rounded-2xl p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'all'
+                ? 'border-[#0066FF] ring-2 ring-[#0066FF]/15 shadow-sm'
+                : 'border-gray-100/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]'
+            }`}
           >
             <div className="text-2xl font-extrabold text-[#0066FF] tracking-tight">
               {formatTwoDigits(stats.total)}
             </div>
             <div className="text-xs text-gray-500 font-medium mt-1">Reports</div>
-          </div>
+          </button>
 
-          <div
-            onClick={() => navigate('/my-complaints')}
-            className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/80 cursor-pointer"
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('active')}
+            className={`text-left bg-white rounded-2xl p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'active'
+                ? 'border-[#EA580C] ring-2 ring-[#EA580C]/15 shadow-sm'
+                : 'border-gray-100/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]'
+            }`}
           >
             <div className="text-2xl font-extrabold text-[#EA580C] tracking-tight">
               {formatTwoDigits(stats.active)}
             </div>
             <div className="text-xs text-gray-500 font-medium mt-1">Active</div>
-          </div>
+          </button>
 
-          <div
-            onClick={() => navigate('/my-complaints')}
-            className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/80 cursor-pointer"
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('resolved')}
+            className={`text-left bg-white rounded-2xl p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'resolved'
+                ? 'border-[#059669] ring-2 ring-[#059669]/15 shadow-sm'
+                : 'border-gray-100/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]'
+            }`}
           >
             <div className="text-2xl font-extrabold text-[#059669] tracking-tight">
               {formatTwoDigits(stats.resolved)}
             </div>
             <div className="text-xs text-gray-500 font-medium mt-1">Resolved</div>
-          </div>
+          </button>
         </div>
 
         {/* Issues Near You Section */}
@@ -185,7 +201,14 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {recentComplaints.map((complaint, idx) => {
+                {recentComplaints
+                  .filter((c) => {
+                    if (selectedFilter === 'active')
+                      return c.status !== 'Resolved' && c.status !== 'Rejected';
+                    if (selectedFilter === 'resolved') return c.status === 'Resolved';
+                    return true;
+                  })
+                  .map((complaint, idx) => {
                   const cid = complaint.complaintId || complaint._id;
                   const shortPlace =
                     complaint.location?.landmark ||

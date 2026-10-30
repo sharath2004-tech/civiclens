@@ -2,27 +2,35 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  Eye,
-  Film,
+  ArrowUpRight,
+  ArrowRight,
+  Map as MapIcon,
+  ClipboardCheck,
   RefreshCw,
-  MapPin,
   Users,
   Sparkles,
   Volume2,
-  User as UserIcon
+  Film,
+  Building2,
+  UserCheck,
 } from 'lucide-react';
 import { complaintAPI } from '../../services/api';
-import { resolveMediaUrl, isVideoMedia, getStatusColor, formatDateTime } from '../../lib/utils';
+import { resolveMediaUrl, isVideoMedia } from '../../lib/utils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all'); // 'all' | 'pending' | 'resolved' | 'critical'
+
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
 
   const fetchComplaints = useCallback(async () => {
     setLoading(true);
@@ -44,208 +52,361 @@ export default function Dashboard() {
 
   const total = complaints.length;
   const pending = complaints.filter((c) => c.status !== 'Resolved' && c.status !== 'Rejected').length;
-  const critical = complaints.filter((c) => c.severity === 'Critical' && c.status !== 'Resolved').length;
   const resolved = complaints.filter((c) => c.status === 'Resolved').length;
+  const critical = complaints.filter((c) => c.severity === 'Critical' && c.status !== 'Resolved').length;
+
+  const pad2 = (num) => String(num || 0).padStart(2, '0');
+  const firstName = user?.name ? user.name.trim().split(' ')[0] : 'Admin';
+
+  const filteredComplaints = complaints.filter((c) => {
+    if (selectedFilter === 'pending') return c.status !== 'Resolved' && c.status !== 'Rejected';
+    if (selectedFilter === 'resolved') return c.status === 'Resolved';
+    if (selectedFilter === 'critical') return c.severity === 'Critical' && c.status !== 'Resolved';
+    return true;
+  });
+
+  const getStatusPill = (status) => {
+    switch (status) {
+      case 'Resolved':
+        return { label: 'Resolved', className: 'bg-[#E6F7ED] text-[#15803D]' };
+      case 'In Progress':
+      case 'Under Review':
+        return { label: 'Under Review', className: 'bg-[#FFF3E6] text-[#C2410C]' };
+      case 'Rejected':
+        return { label: 'Rejected', className: 'bg-[#FEE2E2] text-[#B91C1C]' };
+      default:
+        return { label: 'Submitted', className: 'bg-[#E6F2FF] text-[#0284C7]' };
+    }
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       <Sidebar role="admin" />
-      <div className="flex-1 p-4 lg:p-8 w-full">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+
+      <main className="flex-1 w-full max-w-2xl mx-auto px-5 pt-4 pb-24 lg:py-8 lg:max-w-5xl">
+        {/* Top Greeting Row */}
+        <div className="flex items-start justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-primary">Municipal Authority Dashboard</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Live citizen reports synced across databases • Issues within 30m radius automatically merge into one complaint
+            <h1 className="text-[26px] sm:text-[30px] font-extrabold text-[#0F172A] tracking-tight leading-tight flex items-center gap-2">
+              Hello, {firstName} <span className="text-2xl">👋</span>
+            </h1>
+            <p className="text-[14px] text-[#64748B] mt-1 font-medium">
+              Authority Command Center · 30m radius auto-merge active
             </p>
           </div>
+
           <button
+            type="button"
             onClick={fetchComplaints}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs shrink-0"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#0B63F6]' : ''}`} />
+            <span>Refresh</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-          <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-blue-500">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="w-7 h-7 text-blue-500" />
-              <span className="text-3xl font-bold text-gray-900">{total}</span>
+        {/* Hero Blue Card: Manage Complaints */}
+        <button
+          type="button"
+          onClick={() => navigate('/admin/complaints')}
+          className="w-full text-left rounded-[22px] bg-[#0B63F6] hover:bg-[#0956D9] active:scale-[0.99] transition-all p-5 text-white shadow-[0_10px_25px_-5px_rgba(11,99,246,0.38)] mb-6 relative overflow-hidden"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[21px] font-bold tracking-tight leading-snug">
+                Command Queue & Dispatch
+              </h2>
+              <p className="text-[14px] text-white/90 mt-1.5 leading-relaxed max-w-md font-normal">
+                Inspect AI-classified citizen reports, assign departments, and verify resolution proof.
+              </p>
             </div>
-            <h3 className="font-semibold text-gray-700 text-sm">Total Complaints</h3>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white/90 shrink-0">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
           </div>
 
-          <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-orange-500">
-            <div className="flex items-center justify-between mb-2">
-              <AlertTriangle className="w-7 h-7 text-orange-500" />
-              <span className="text-3xl font-bold text-gray-900">{pending}</span>
-            </div>
-            <h3 className="font-semibold text-gray-700 text-sm">Pending / Active</h3>
+          <div className="mt-5 inline-flex items-center gap-2 text-[14px] font-bold text-white">
+            <ClipboardCheck className="w-4 h-4" />
+            <span>Open Full Complaints Table</span>
           </div>
+        </button>
 
-          <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-red-500">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-7 h-7 text-red-500" />
-              <span className="text-3xl font-bold text-gray-900">{critical}</span>
+        {/* Interactive Stat Filter Buttons: Total Complaints | Pending | Resolved | Critical */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('all')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'all'
+                ? 'border-[#0B63F6] ring-2 ring-[#0B63F6]/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)] hover:border-slate-200'
+            }`}
+          >
+            <div className="text-[24px] font-extrabold text-[#0B63F6] leading-none">
+              {pad2(total)}
             </div>
-            <h3 className="font-semibold text-gray-700 text-sm">Critical Issues</h3>
-          </div>
+            <div className="text-[13px] font-semibold text-[#64748B] mt-2">
+              Total Complaints
+            </div>
+          </button>
 
-          <div className="bg-white p-5 rounded-xl shadow-md border-l-4 border-green-500">
-            <div className="flex items-center justify-between mb-2">
-              <CheckCircle className="w-7 h-7 text-green-500" />
-              <span className="text-3xl font-bold text-gray-900">{resolved}</span>
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('pending')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'pending'
+                ? 'border-[#D97706] ring-2 ring-[#D97706]/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)] hover:border-slate-200'
+            }`}
+          >
+            <div className="text-[24px] font-extrabold text-[#D97706] leading-none">
+              {pad2(pending)}
             </div>
-            <h3 className="font-semibold text-gray-700 text-sm">Resolved</h3>
-          </div>
+            <div className="text-[13px] font-semibold text-[#64748B] mt-2">
+              Pending
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('resolved')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'resolved'
+                ? 'border-[#059669] ring-2 ring-[#059669]/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)] hover:border-slate-200'
+            }`}
+          >
+            <div className="text-[24px] font-extrabold text-[#059669] leading-none">
+              {pad2(resolved)}
+            </div>
+            <div className="text-[13px] font-semibold text-[#64748B] mt-2">
+              Resolved
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('critical')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'critical'
+                ? 'border-rose-600 ring-2 ring-rose-600/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)] hover:border-slate-200'
+            }`}
+          >
+            <div className="text-[24px] font-extrabold text-rose-600 leading-none">
+              {pad2(critical)}
+            </div>
+            <div className="text-[13px] font-semibold text-[#64748B] mt-2">
+              Critical
+            </div>
+          </button>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center justify-between">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-xs font-medium text-red-700 flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={fetchComplaints} className="font-bold underline">
+            <button type="button" onClick={fetchComplaints} className="font-bold underline">
               Retry
             </button>
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              All Citizen Media Reports ({complaints.length})
+        {/* Issues Near You / Live Hotspot Map Card */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
+              Issues Near You
             </h2>
             <button
-              onClick={() => navigate('/admin/complaints')}
-              className="text-sm font-semibold text-secondary hover:underline"
+              type="button"
+              onClick={() => navigate('/admin/map')}
+              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#0B63F6] hover:underline"
             >
-              Manage All Table →
+              <span>View map</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
-          {loading ? (
-            <div className="py-12 text-center text-gray-500 text-sm">Loading citizen complaints...</div>
-          ) : complaints.length === 0 ? (
-            <p className="text-gray-500 py-8 text-center">No complaints submitted yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {complaints.map((c) => {
+          <button
+            type="button"
+            onClick={() => navigate('/admin/map')}
+            className="w-full rounded-[20px] bg-[#EAF1FB] hover:bg-[#E1ECFA] active:scale-[0.99] transition-all py-6 px-5 flex flex-col items-center justify-center text-center border border-[#D8E6F8]"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[#0B63F6] mb-1.5">
+              <MapIcon className="w-6 h-6" />
+            </div>
+            <div className="text-[16px] font-extrabold text-[#1E293B]">
+              Interactive City Map
+            </div>
+            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
+              30m cluster hotspots and live GPS pins
+            </div>
+          </button>
+        </div>
+
+        {/* Filtered Complaints Feed */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
+                {selectedFilter === 'all'
+                  ? 'Recent Complaints'
+                  : selectedFilter === 'pending'
+                  ? 'Pending Complaints'
+                  : selectedFilter === 'resolved'
+                  ? 'Resolved Complaints'
+                  : 'Critical Complaints'}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200/80 text-slate-700">
+                {filteredComplaints.length}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/admin/complaints')}
+              className="text-[13px] font-bold text-[#0B63F6] hover:underline"
+            >
+              Manage all →
+            </button>
+          </div>
+
+          <div className="bg-white rounded-[20px] border border-slate-100 shadow-[0_2px_12px_rgba(15,23,42,0.04)] divide-y divide-slate-100 overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center text-sm text-[#64748B]">
+                Syncing live complaints...
+              </div>
+            ) : filteredComplaints.length === 0 ? (
+              <div className="p-8 text-center text-sm text-[#64748B]">
+                No complaints match this filter.
+              </div>
+            ) : (
+              filteredComplaints.map((c, idx) => {
                 const cid = c.complaintId || c._id;
+                const pill = getStatusPill(c.status);
+                const reportNum = String(filteredComplaints.length - idx).padStart(3, '0');
+                const shortLocation =
+                  (c.location?.address || 'Nearby area').split(',')[0].trim() || 'Nearby area';
                 const mediaList = c.beforeImages?.length ? c.beforeImages : c.images || [];
                 const mediaUrl = mediaList[0] ? resolveMediaUrl(mediaList[0]) : '';
                 const isVideo = isVideoMedia(mediaUrl, c.beforeMedia?.[0]?.mediaType);
-                const reporterName =
-                  typeof c.reportedBy === 'object' && c.reportedBy?.name
-                    ? c.reportedBy.name
-                    : 'Citizen';
 
                 return (
-                  <div
-                    key={cid}
+                  <button
+                    key={cid || idx}
+                    type="button"
                     onClick={() => navigate(`/complaint/${cid}`)}
-                    className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer bg-white flex flex-col justify-between"
+                    className="w-full p-4 text-left hover:bg-slate-50/80 transition-colors flex items-start gap-3.5"
                   >
-                    <div>
-                      {mediaUrl ? (
-                        <div className="relative h-44 bg-black">
-                          {isVideo ? (
-                            <>
-                              <video
-                                src={mediaUrl}
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                              />
-                              <span className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1">
-                                <Film className="w-3 h-3" /> Video
-                              </span>
-                            </>
-                          ) : (
-                            <img src={mediaUrl} alt={c.title} className="w-full h-full object-cover" />
-                          )}
-                          {mediaList.length > 1 && (
-                            <span className="absolute top-2 left-2 bg-black/75 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-                              +{mediaList.length - 1} more media
+                    {/* Thumbnail */}
+                    {mediaUrl ? (
+                      <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 shrink-0 relative border border-slate-200/70">
+                        {isVideo ? (
+                          <>
+                            <video
+                              src={mediaUrl}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                            <span className="absolute inset-0 bg-black/30 flex items-center justify-center text-white">
+                              <Film className="w-4 h-4" />
                             </span>
-                          )}
-                          {(c.duplicates || 0) > 0 && (
-                            <span className="absolute top-2 right-2 bg-amber-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow">
-                              <Users className="w-3 h-3" /> +{c.duplicates} within 30m
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="h-24 bg-slate-100 flex items-center justify-center text-xs text-slate-400 font-medium">
-                          No Media Attached
-                        </div>
-                      )}
+                          </>
+                        ) : (
+                          <img
+                            src={mediaUrl}
+                            alt={c.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
+                      </div>
+                    ) : null}
 
-                      <div className="p-4">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="text-xs font-mono font-bold text-blue-600">{cid}</span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${getStatusColor(
-                              c.status
-                            )}`}
-                          >
-                            {c.status}
+                    {/* Details */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-[15px] font-bold text-[#0F172A] truncate">
+                          {c.title || c.category || 'Civic Issue'}
+                        </h3>
+                        <span
+                          className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-bold ${pill.className}`}
+                        >
+                          {pill.label}
+                        </span>
+                      </div>
+
+                      <p className="text-[13px] text-[#64748B] mt-1 truncate font-medium">
+                        {shortLocation} · Report #{reportNum}
+                      </p>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="font-bold text-[#0B63F6] bg-blue-50 px-2 py-0.5 rounded-md">
+                          {c.category}
+                        </span>
+                        <span className="font-semibold text-slate-600">
+                          Priority {c.priority || 50}/100
+                        </span>
+                        {(c.duplicates || 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                            <Users className="w-3 h-3" /> +{c.duplicates} within 30m
                           </span>
-                        </div>
-
-                        <h3 className="font-bold text-gray-900 line-clamp-1">{c.title}</h3>
-                        <p className="text-xs text-gray-600 line-clamp-2 mt-1">{c.description}</p>
-
+                        )}
                         {c.videoSummary && (
-                          <div className="mt-2 p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-[11px] text-indigo-900">
-                            <span className="font-bold inline-flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-indigo-600" /> AI Video Summary:
-                            </span>{' '}
-                            <span className="line-clamp-2">{c.videoSummary}</span>
-                          </div>
-                        )}
-
-                        {c.voiceTranscript && !c.videoSummary && (
-                          <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-lg text-[11px] text-blue-900">
-                            <span className="font-bold inline-flex items-center gap-1">
-                              <Volume2 className="w-3 h-3 text-blue-600" /> Voice:
-                            </span>{' '}
-                            <span className="italic line-clamp-1">"{c.voiceTranscript}"</span>
-                          </div>
-                        )}
-
-                        <div className="mt-2.5 flex items-center gap-1 text-xs text-gray-500 truncate">
-                          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span className="truncate">{c.location?.address || 'Pinned GPS Location'}</span>
-                        </div>
-
-                        <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
-                          <span className="inline-flex items-center gap-1">
-                            <UserIcon className="w-3 h-3" /> {reporterName}
+                          <span className="inline-flex items-center gap-1 font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                            <Sparkles className="w-3 h-3" /> AI Brief
                           </span>
-                          <span>{formatDateTime(c.createdAt)}</span>
-                        </div>
+                        )}
+                        {c.voiceTranscript && (
+                          <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md">
+                            <Volume2 className="w-3 h-3" /> Voice Note
+                          </span>
+                        )}
                       </div>
                     </div>
-
-                    <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-secondary">Priority: {c.priority}/100</span>
-                        <span className="text-gray-400">•</span>
-                        <span className="font-medium text-gray-700">{c.category}</span>
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-primary font-semibold">
-                        <Eye className="w-3.5 h-3.5" /> Full Details
-                      </span>
-                    </div>
-                  </div>
+                  </button>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Quick Mode Switcher */}
+        <div className="grid grid-cols-2 gap-3 mt-6">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
+          >
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B63F6] flex items-center justify-center shrink-0">
+              <UserCheck className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold text-[#0F172A] truncate">Citizen View</div>
+              <div className="text-[11px] text-[#64748B] truncate">Switch to Citizen App</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/admin/departments')}
+            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
+          >
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold text-[#0F172A] truncate">Departments</div>
+              <div className="text-[11px] text-[#64748B] truncate">Manage Teams</div>
+            </div>
+          </button>
+        </div>
+      </main>
     </div>
   );
 }

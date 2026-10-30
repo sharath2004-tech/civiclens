@@ -6,7 +6,16 @@
 import axios from 'axios';
 
 const LAPTOP_WIFI_API = 'http://10.190.124.75:5000/api';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const isWebProductionHost =
+  typeof window !== 'undefined' &&
+  window.location.protocol === 'https:' &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1' &&
+  !window.Capacitor?.isNativePlatform?.();
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (isWebProductionHost ? '/api' : 'http://localhost:5000/api');
 
 // Create axios instance with default config
 const api = axios.create({

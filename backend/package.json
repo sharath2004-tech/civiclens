@@ -1,6 +1,7 @@
 {
   "name": "civiclens-backend",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "Backend API for CivicLens - AI-Powered Smart Civic Issue Management Platform",
   "main": "server.js",
   "scripts": {

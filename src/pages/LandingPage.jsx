@@ -25,6 +25,7 @@ export default function LandingPage() {
     }
   });
   const [complaints, setComplaints] = useState([]);
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const [liveStats, setLiveStats] = useState({
     total: 0,
     resolved: 0,
@@ -143,28 +144,52 @@ export default function LandingPage() {
           </div>
         </button>
 
-        {/* 3 Compact Stat Cards: Reports | Active | Resolved */}
+        {/* 3 Compact Interactive Stat Filter Buttons: Reports | Active | Resolved */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-[18px] p-4 border border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('all')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'all'
+                ? 'border-[#0B63F6] ring-2 ring-[#0B63F6]/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]'
+            }`}
+          >
             <div className="text-[24px] font-extrabold text-[#0B63F6] leading-none">
               {pad2(liveStats.total)}
             </div>
             <div className="text-[13px] font-medium text-[#64748B] mt-2">Reports</div>
-          </div>
+          </button>
 
-          <div className="bg-white rounded-[18px] p-4 border border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('active')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'active'
+                ? 'border-[#D97706] ring-2 ring-[#D97706]/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]'
+            }`}
+          >
             <div className="text-[24px] font-extrabold text-[#D97706] leading-none">
               {pad2(liveStats.active)}
             </div>
             <div className="text-[13px] font-medium text-[#64748B] mt-2">Active</div>
-          </div>
+          </button>
 
-          <div className="bg-white rounded-[18px] p-4 border border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+          <button
+            type="button"
+            onClick={() => setSelectedFilter('resolved')}
+            className={`text-left bg-white rounded-[18px] p-4 border transition-all active:scale-[0.98] ${
+              selectedFilter === 'resolved'
+                ? 'border-[#059669] ring-2 ring-[#059669]/15 shadow-sm'
+                : 'border-slate-100 shadow-[0_2px_10px_rgba(15,23,42,0.03)]'
+            }`}
+          >
             <div className="text-[24px] font-extrabold text-[#059669] leading-none">
               {pad2(liveStats.resolved)}
             </div>
             <div className="text-[13px] font-medium text-[#64748B] mt-2">Resolved</div>
-          </div>
+          </button>
         </div>
 
         {/* Issues Near You Section */}
@@ -221,8 +246,16 @@ export default function LandingPage() {
                 No complaints reported yet. Tap &ldquo;Start Reporting&rdquo; above to add the first issue.
               </div>
             ) : (
-              complaints.slice(0, 4).map((complaint, idx) => {
-                const cid = complaint._id || complaint.id;
+              complaints
+                .filter((c) => {
+                  if (selectedFilter === 'active')
+                    return c.status !== 'Resolved' && c.status !== 'Rejected';
+                  if (selectedFilter === 'resolved') return c.status === 'Resolved';
+                  return true;
+                })
+                .slice(0, 6)
+                .map((complaint, idx) => {
+                const cid = complaint.complaintId || complaint._id || complaint.id;
                 const pill = getStatusPill(complaint.status);
                 const reportNum = String(complaints.length - idx).padStart(3, '0');
                 const shortLocation =
@@ -233,7 +266,7 @@ export default function LandingPage() {
                   <button
                     key={cid || idx}
                     type="button"
-                    onClick={() => navigate(hasToken ? `/complaints/${cid}` : '/login')}
+                    onClick={() => navigate(hasToken ? `/complaint/${cid}` : '/login')}
                     className="w-full p-4 text-left hover:bg-slate-50/80 transition-colors flex items-start justify-between gap-3"
                   >
                     <div className="min-w-0 flex-1">
