@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   PlusCircle,
   ListTodo,
-  Map,
   User,
   MapPin,
   Users,
@@ -18,24 +17,25 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { authAPI } from '../services/api';
+import { useI18n } from '../lib/i18n';
+import LanguageSelector from './LanguageSelector';
 
 export default function Sidebar({ role = 'citizen' }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const citizenMenu = [
-    { icon: Home, label: 'Home', path: '/dashboard' },
-    { icon: Map, label: 'Explore Map', path: '/explore' },
-    { icon: PlusCircle, label: 'Report Issue', path: '/report' },
-    { icon: ClipboardList, label: 'My Complaints', path: '/my-complaints' },
-    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: Home, label: t('home'), path: '/dashboard' },
+    { icon: PlusCircle, label: t('heroTitle'), path: '/report' },
+    { icon: ClipboardList, label: t('myComplaints'), path: '/my-complaints' },
+    { icon: User, label: t('profile'), path: '/profile' },
   ];
 
   const adminMenu = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
+    { icon: LayoutDashboard, label: t('dashboard'), path: '/admin' },
     { icon: ListTodo, label: 'All Complaints', path: '/admin/complaints' },
-    { icon: Map, label: 'Issue Map', path: '/admin/map' },
     { icon: TrendingUp, label: 'Priority Queue', path: '/admin/priority-queue' },
     { icon: Users, label: 'Departments', path: '/admin/departments' },
     { icon: User, label: 'Workers', path: '/admin/workers' },
@@ -71,37 +71,40 @@ export default function Sidebar({ role = 'citizen' }) {
           <span className="font-bold text-gray-900 text-base tracking-tight">JanSetu</span>
         </div>
 
-        {role === 'admin' ? (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <LanguageSelector variant="header" />
+          {role === 'admin' ? (
+            <>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                aria-label={t('logout')}
+              >
+                <LogOut className="w-4 h-4" />
+                {t('logout')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-xl text-gray-700 hover:bg-gray-200/60"
+                aria-label="Toggle Menu"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </>
+          ) : (
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
-              aria-label="Logout"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+              aria-label={t('logout')}
             >
               <LogOut className="w-4 h-4" />
-              Logout
+              {t('logout')}
             </button>
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-xl text-gray-700 hover:bg-gray-200/60"
-              aria-label="Toggle Menu"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
-            aria-label="Logout"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
-        )}
+          )}
+        </div>
       </header>
 
       {/* Mobile Bottom Navigation Bar (matches the 5-icon bar from the mockup!) */}
@@ -209,13 +212,17 @@ export default function Sidebar({ role = 'citizen' }) {
           })}
         </nav>
 
+        <div className="pt-3 border-t border-white/10 mb-2">
+          <LanguageSelector variant="compact" />
+        </div>
+
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-4 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:bg-red-500 hover:text-white transition-all"
+          className="mt-2 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:bg-red-500 hover:text-white transition-all"
         >
           <LogOut className="w-4 h-4 shrink-0" />
-          <span className="font-medium">Logout</span>
+          <span className="font-medium">{t('logout')}</span>
         </button>
       </aside>
     </>

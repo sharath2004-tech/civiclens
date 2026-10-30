@@ -5,7 +5,6 @@ import {
   Camera,
   ArrowUpRight,
   ArrowRight,
-  Map as MapIcon,
   Home,
   PlusCircle,
   ClipboardList,
@@ -13,11 +12,16 @@ import {
   Building2,
   UserCheck,
   LogOut,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react';
 import { complaintAPI, userAPI } from '../services/api';
+import { useI18n } from '../lib/i18n';
+import LanguageSelector from '../components/LanguageSelector';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t, lang } = useI18n();
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null');
@@ -98,19 +102,20 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageSelector variant="header" />
             <button
               type="button"
               onClick={() => navigate('/admin')}
               className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors"
             >
-              Admin
+              {t('admin')}
             </button>
             <button
               type="button"
               onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
               className="px-3.5 py-1.5 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-slate-800 transition-colors"
             >
-              {hasToken ? 'Dashboard' : 'Sign In'}
+              {hasToken ? t('dashboard') : t('signIn')}
             </button>
             {hasToken && (
               <button
@@ -123,10 +128,10 @@ export default function LandingPage() {
                   }
                 }}
                 className="px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-colors inline-flex items-center gap-1"
-                title="Logout"
+                title={t('logout')}
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">{t('logout')}</span>
               </button>
             )}
           </div>
@@ -138,10 +143,10 @@ export default function LandingPage() {
         {/* Greeting Header (No rounded AI badge) */}
         <div>
           <h1 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight leading-tight flex items-center gap-2">
-            {hasToken ? `Hello, ${firstName} 👋` : 'Welcome to JanSetu 👋'}
+            {hasToken ? `${t('hello')}, ${firstName} 👋` : `${t('welcome')} 👋`}
           </h1>
           <p className="text-[15px] text-[#64748B] mt-1 font-medium">
-            {hasToken ? "Let's make your city better." : 'AI & Geospatial Civic Issue Resolution Platform'}
+            {hasToken ? t('cityBetter') : t('tagline')}
           </p>
         </div>
 
@@ -154,10 +159,10 @@ export default function LandingPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-[21px] font-bold tracking-tight leading-snug">
-                Report an Issue
+                {t('heroTitle')}
               </h2>
               <p className="text-[14px] text-white/90 mt-1.5 leading-relaxed max-w-[270px] font-normal">
-                Capture a photo or video. Let AI identify the problem.
+                {t('heroDesc')}
               </p>
             </div>
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white/90 shrink-0">
@@ -167,7 +172,7 @@ export default function LandingPage() {
 
           <div className="mt-5 inline-flex items-center gap-2 text-[14px] font-bold text-white">
             <Camera className="w-4 h-4" />
-            <span>Start Reporting</span>
+            <span>{t('startReporting')}</span>
           </div>
         </button>
 
@@ -185,7 +190,7 @@ export default function LandingPage() {
             <div className="text-[24px] font-extrabold text-[#0B63F6] leading-none">
               {pad2(liveStats.total)}
             </div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-2">Reports</div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-2">{t('reports')}</div>
           </button>
 
           <button
@@ -200,7 +205,7 @@ export default function LandingPage() {
             <div className="text-[24px] font-extrabold text-[#D97706] leading-none">
               {pad2(liveStats.active)}
             </div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-2">Active</div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-2">{t('active')}</div>
           </button>
 
           <button
@@ -215,40 +220,7 @@ export default function LandingPage() {
             <div className="text-[24px] font-extrabold text-[#059669] leading-none">
               {pad2(liveStats.resolved)}
             </div>
-            <div className="text-[13px] font-medium text-[#64748B] mt-2">Resolved</div>
-          </button>
-        </div>
-
-        {/* Issues Near You Section */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
-              Issues Near You
-            </h2>
-            <button
-              type="button"
-              onClick={() => navigate('/explore')}
-              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#0B63F6] hover:underline"
-            >
-              <span>View map</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/explore')}
-            className="w-full rounded-[20px] bg-[#EAF1FB] hover:bg-[#E1ECFA] active:scale-[0.99] transition-all py-7 px-5 flex flex-col items-center justify-center text-center border border-[#D8E6F8]"
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[#0B63F6] mb-1.5">
-              <MapIcon className="w-6 h-6" />
-            </div>
-            <div className="text-[16px] font-extrabold text-[#1E293B]">
-              Interactive City Map
-            </div>
-            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
-              Nearby civic complaints and hotspots
-            </div>
+            <div className="text-[13px] font-medium text-[#64748B] mt-2">{t('resolved')}</div>
           </button>
         </div>
 
@@ -257,21 +229,21 @@ export default function LandingPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[18px] font-extrabold text-[#0F172A] tracking-tight">
-                Your Complaints
+                {t('yourComplaints')}
               </h2>
               <button
                 type="button"
                 onClick={() => navigate('/my-complaints')}
                 className="text-[13px] font-bold text-[#0B63F6] hover:underline"
               >
-                See all
+                {t('seeAll')}
               </button>
             </div>
 
             <div className="bg-white rounded-[20px] border border-slate-100 shadow-[0_2px_12px_rgba(15,23,42,0.04)] divide-y divide-slate-100 overflow-hidden">
               {complaints.length === 0 ? (
                 <div className="p-6 text-center text-sm text-[#64748B]">
-                  You have not submitted any complaints yet. Tap &ldquo;Start Reporting&rdquo; above to report an issue.
+                  {t('noComplaints')}
                 </div>
               ) : (
                 complaints
@@ -322,10 +294,10 @@ export default function LandingPage() {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <h3 className="text-base font-extrabold text-[#0F172A]">
-              Personal & Secure Complaint Dashboard
+              {t('secureCalloutTitle')}
             </h3>
             <p className="text-sm text-[#64748B] mt-1 max-w-sm mx-auto">
-              Sign in to view your individual civic complaints, track live resolution status, and receive department updates.
+              {t('secureCalloutDesc')}
             </p>
             <div className="mt-4 flex items-center justify-center gap-3">
               <button
@@ -333,14 +305,14 @@ export default function LandingPage() {
                 onClick={() => navigate('/login')}
                 className="px-5 py-2.5 rounded-xl bg-[#0B63F6] text-white text-sm font-bold shadow-sm hover:bg-[#0956D9] transition-all"
               >
-                Sign In to View
+                {t('signIn')}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/register')}
                 className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition-all"
               >
-                Create Account
+                {t('createAccount')}
               </button>
             </div>
           </div>
@@ -358,7 +330,7 @@ export default function LandingPage() {
             </div>
             <div className="min-w-0">
               <div className="text-xs font-extrabold text-[#0F172A] truncate">Citizen Portal</div>
-              <div className="text-[11px] text-[#64748B] truncate">My Reports</div>
+              <div className="text-[11px] text-[#64748B] truncate">{t('myComplaints')}</div>
             </div>
           </button>
 
@@ -371,58 +343,49 @@ export default function LandingPage() {
               <Building2 className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-extrabold text-[#0F172A] truncate">Authority Admin</div>
+              <div className="text-xs font-extrabold text-[#0F172A] truncate">{t('admin')} Portal</div>
               <div className="text-[11px] text-[#64748B] truncate">Command Center</div>
             </div>
           </button>
         </div>
       </main>
 
-      {/* Bottom 5-Icon Navigation Bar */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 h-16 px-4 flex items-center justify-around max-w-xl mx-auto">
+      {/* Bottom 4-Icon Clean Navigation Bar (Map removed, Map only shown when submitting) */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 h-16 px-6 flex items-center justify-around max-w-xl mx-auto">
         <button
           type="button"
           onClick={() => navigate('/dashboard')}
           className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-[#0B63F6]"
         >
           <Home className="w-5 h-5 stroke-[2.4]" />
-          <span className="text-[10px] font-bold">Home</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/explore')}
-          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600"
-        >
-          <MapIcon className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-medium">Map</span>
+          <span className="text-[10px] font-bold">{t('home')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => navigate(hasToken ? '/report' : '/login')}
-          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-500 hover:text-[#0B63F6]"
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-600 hover:text-[#0B63F6]"
         >
-          <PlusCircle className="w-6 h-6 stroke-[2]" />
-          <span className="text-[10px] font-semibold">Report</span>
+          <PlusCircle className="w-6 h-6 stroke-[2.2] text-[#0B63F6]" />
+          <span className="text-[10px] font-bold text-[#0B63F6]">{t('heroTitle')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => navigate(hasToken ? '/my-complaints' : '/login')}
-          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600"
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-500 hover:text-slate-800"
         >
           <ClipboardList className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-medium">Complaints</span>
+          <span className="text-[10px] font-medium">{t('myComplaints')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => navigate(hasToken ? '/profile' : '/login')}
-          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600"
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3 text-slate-500 hover:text-slate-800"
         >
           <User className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-medium">Profile</span>
+          <span className="text-[10px] font-medium">{t('profile')}</span>
         </button>
       </nav>
     </div>

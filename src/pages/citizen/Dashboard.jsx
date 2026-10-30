@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Map, ArrowUpRight, Loader2, LogOut } from 'lucide-react';
+import { Camera, ArrowUpRight, Loader2, LogOut } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import { complaintAPI, userAPI } from '../../services/api';
+import { useI18n } from '../../lib/i18n';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(() => {
     try {
@@ -75,9 +77,9 @@ export default function Dashboard() {
         {/* Greeting Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
-            Hello, {firstName} <span>👋</span>
+            {t('hello')}, {firstName} <span>👋</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Let&apos;s make your city better.</p>
+          <p className="text-sm text-gray-500 mt-1">{t('cityBetter')}</p>
         </div>
 
         {/* Vibrant Blue Hero Card: Report an Issue */}
@@ -87,15 +89,15 @@ export default function Dashboard() {
           className="w-full bg-[#0066FF] hover:bg-[#0057DB] text-white rounded-3xl p-6 text-left shadow-md active:scale-[0.99] transition-all"
         >
           <div className="flex items-start justify-between mb-2">
-            <h2 className="text-xl font-bold tracking-tight">Report an Issue</h2>
+            <h2 className="text-xl font-bold tracking-tight">{t('heroTitle')}</h2>
             <ArrowUpRight className="w-5 h-5 text-white/90 shrink-0" />
           </div>
           <p className="text-sm text-blue-100 leading-relaxed mb-5 max-w-sm">
-            Capture a photo or video. Let AI identify the problem.
+            {t('heroDesc')}
           </p>
           <div className="inline-flex items-center gap-2 text-sm font-bold text-white">
             <Camera className="w-4 h-4" />
-            <span>Start Reporting</span>
+            <span>{t('startReporting')}</span>
           </div>
         </button>
 
@@ -113,7 +115,7 @@ export default function Dashboard() {
             <div className="text-2xl font-extrabold text-[#0066FF] tracking-tight">
               {formatTwoDigits(stats.total)}
             </div>
-            <div className="text-xs text-gray-500 font-medium mt-1">Reports</div>
+            <div className="text-xs text-gray-500 font-medium mt-1">{t('reports')}</div>
           </button>
 
           <button
@@ -128,7 +130,7 @@ export default function Dashboard() {
             <div className="text-2xl font-extrabold text-[#EA580C] tracking-tight">
               {formatTwoDigits(stats.active)}
             </div>
-            <div className="text-xs text-gray-500 font-medium mt-1">Active</div>
+            <div className="text-xs text-gray-500 font-medium mt-1">{t('active')}</div>
           </button>
 
           <button
@@ -143,44 +145,21 @@ export default function Dashboard() {
             <div className="text-2xl font-extrabold text-[#059669] tracking-tight">
               {formatTwoDigits(stats.resolved)}
             </div>
-            <div className="text-xs text-gray-500 font-medium mt-1">Resolved</div>
+            <div className="text-xs text-gray-500 font-medium mt-1">{t('resolved')}</div>
           </button>
-        </div>
-
-        {/* Issues Near You Section */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-900">Issues Near You</h2>
-            <button
-              type="button"
-              onClick={() => navigate('/explore')}
-              className="text-xs font-bold text-[#0066FF] hover:underline"
-            >
-              View map →
-            </button>
-          </div>
-
-          <div
-            onClick={() => navigate('/explore')}
-            className="bg-[#EAF2FF]/80 hover:bg-[#EAF2FF] rounded-3xl py-7 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
-          >
-            <Map className="w-7 h-7 text-[#0066FF] mb-2 stroke-[2]" />
-            <h3 className="text-base font-bold text-gray-900">Interactive City Map</h3>
-            <p className="text-xs text-gray-500 mt-1">Nearby civic complaints and hotspots</p>
-          </div>
         </div>
 
         {/* Recent Complaints Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-900">Recent Complaints</h2>
+            <h2 className="text-base font-bold text-gray-900">{t('yourComplaints')}</h2>
             {recentComplaints.length > 0 && (
               <button
                 type="button"
                 onClick={() => navigate('/my-complaints')}
                 className="text-xs font-bold text-[#0066FF] hover:underline"
               >
-                See all
+                {t('seeAll')}
               </button>
             )}
           </div>

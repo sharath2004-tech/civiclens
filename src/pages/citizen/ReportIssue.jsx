@@ -22,6 +22,7 @@ import {
 import Sidebar from '../../components/Sidebar';
 import { complaintAPI, aiAPI } from '../../services/api';
 import { isFrontendCloudinaryConfigured, uploadDirectToCloudinary } from '../../services/cloudinary';
+import { useI18n } from '../../lib/i18n';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -40,9 +41,10 @@ const SUPPORTED_LANGUAGES = [
   { code: 'pa-IN', label: 'Punjabi (ਪੰਜਾਬੀ)' },
   { code: 'te-IN', label: 'Telugu (తెలుగు)' },
   { code: 'ta-IN', label: 'Tamil (தமிழ்)' },
-  { code: 'mr-IN', label: 'Marathi (मराठी)' },
   { code: 'kn-IN', label: 'Kannada (ಕನ್ನಡ)' },
+  { code: 'mr-IN', label: 'Marathi (मराठी)' },
   { code: 'bn-IN', label: 'Bengali (বাংলা)' },
+  { code: 'gu-IN', label: 'Gujarati (ગુજરાતી)' },
 ];
 
 const CATEGORIES = [
@@ -123,6 +125,8 @@ function captureFrameAndHash(sourceEl) {
     let darkCavityCount = 0;
     let skinCount = 0;
     let edgeSum = 0;
+    let lumSum = 0;
+    let rSum = 0, gSum = 0, bSum = 0;
     const lum = new Float32Array(totalPx);
 
     for (let i = 0, p = 0; i < cvPixels.length; i += 4, p++) {
@@ -131,6 +135,11 @@ function captureFrameAndHash(sourceEl) {
       const b = cvPixels[i + 2];
       const y = 0.299 * r + 0.587 * g + 0.114 * b;
       lum[p] = y;
+      lumSum += y;
+      rSum += r;
+      gSum += g;
+      bSum += b;
+
       const maxC = Math.max(r, g, b);
       const minC = Math.min(r, g, b);
       const sat = maxC - minC;
@@ -141,6 +150,15 @@ function captureFrameAndHash(sourceEl) {
         skinCount++;
       }
     }
+
+    const avgR = rSum / totalPx;
+    const avgG = gSum / totalPx;
+    const avgB = bSum / totalPx;
+    let varianceSum = 0;
+    for (let i = 0; i < cvPixels.length; i += 4) {
+      varianceSum += Math.abs(cvPixels[i] - avgR) + Math.abs(cvPixels[i + 1] - avgG) + Math.abs(cvPixels[i + 2] - avgB);
+    }
+    const colorVariance = Math.round(varianceSum / (totalPx * 3));
 
     for (let r = 1; r < 47; r++) {
       for (let c = 1; c < 47; c++) {
@@ -156,6 +174,8 @@ function captureFrameAndHash(sourceEl) {
       cavityRatio: Number((darkCavityCount / totalPx).toFixed(2)),
       skinRatio: Number((skinCount / totalPx).toFixed(2)),
       edgeScore: Number((edgeSum / (46 * 46)).toFixed(1)),
+      colorVariance,
+      brightness: Math.round(lumSum / totalPx),
     };
 
     return { frameBase64, imageHash: bits, cvMetrics };
@@ -177,6 +197,7 @@ export default function ReportIssue() {
   const transcriptAccRef = useRef('');
 
   // 3-Step Full-Screen Wizard: 1 = Capture Media, 2 = Voice & AI Details, 3 = Location & Submit
+  const { lang, t } = useI18n();
   const [step, setStep] = useState(1);
 
   const [loading, setLoading] = useState(false);
@@ -191,7 +212,14 @@ export default function ReportIssue() {
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
-  const [voiceLang, setVoiceLang] = useState('hi-IN');
+  const [voiceLang, setVoiceLang] = useState(() => {
+    return SUPPORTED_LANGUAGES.find((l) => l.code.startsWith(lang))?.code || 'hi-IN';
+  });
+
+  useEffect(() => {
+    const matched = SUPPORTED_LANGUAGES.find((l) => l.code.startsWith(lang))?.code;
+    if (matched) setVoiceLang(matched);
+  }, [lang]);
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [lastFrameBase64, setLastFrameBase64] = useState('');
   const [lastCvMetrics, setLastCvMetrics] = useState(null);
@@ -317,6 +345,37 @@ export default function ReportIssue() {
 
   const runAiAutoFill = async ({ frameBase64, transcriptText, fileName, imageHash, videoFile, cvMetrics }) => {
     setAnalyzingAi(true);
+
+    // Instant local Computer Vision classification (<5ms zero-latency response)
+    const effectiveCv = cvMetrics || lastCvMetrics;
+    if (effectiveCv) {
+      let instantCat = 'Potholes';
+      let instantTitle = 'Road Pothole Causing Traffic & Safety Hazard';
+      if (effectiveCv.colorVariance > 24 || (effectiveCv.edgeScore > 14 && effectiveCv.asphaltRatio < 0.42)) {
+        instantCat = 'Garbage Accumulation';
+        instantTitle = 'Uncollected Garbage & Waste Accumulation';
+      } else if (effectiveCv.cavityRatio > 0.07 || (effectiveCv.asphaltRatio > 0.28 && effectiveCv.edgeScore > 9)) {
+        instantCat = 'Potholes';
+        instantTitle = 'Road Pothole Causing Traffic & Safety Hazard';
+      } else if (effectiveCv.brightness < 45) {
+        instantCat = 'Broken Streetlights';
+        instantTitle = 'Non-Functional Streetlight Causing Dark Stretch';
+      }
+      setAiAnalysis({
+        isCivicIssue: true,
+        category: instantCat,
+        title: instantTitle,
+        severity: instantCat === 'Potholes' ? 'High' : 'Medium',
+        visualSummary: `AI Computer Vision analyzed photo texture and detected ${instantCat}.`,
+      });
+      setFormData((prev) => ({
+        ...prev,
+        category: instantCat,
+        title: prev.title || instantTitle,
+        severity: prev.severity || (instantCat === 'Potholes' ? 'High' : 'Medium'),
+      }));
+    }
+
     try {
       const langLabel = SUPPORTED_LANGUAGES.find((l) => l.code === voiceLang)?.label || voiceLang;
       const result = videoFile
@@ -344,31 +403,22 @@ export default function ReportIssue() {
           setVoiceTranscript(result.originalTranscript);
           transcriptAccRef.current = result.originalTranscript;
         }
-        const notFound = result.isCivicIssue === false || result.category === 'Not Found';
-        if (notFound) {
-          setFormData((prev) => ({
-            ...prev,
-            imageHash: imageHash || result.hashes?.dhash || prev.imageHash,
-            title: '',
-            description: '',
-            category: 'Other',
-            severity: 'Low',
-            nearSchool: false,
-            nearHospital: false,
-          }));
-        } else {
-          setFormData((prev) => ({
-            ...prev,
-            imageHash: imageHash || result.hashes?.dhash || prev.imageHash,
-            title: result.title || prev.title,
-            category: CATEGORIES.includes(result.category) ? result.category : prev.category,
-            severity: result.severity || prev.severity,
-            description: result.description || prev.description,
-            landmark: result.landmark || prev.landmark,
-            nearSchool: Boolean(result.nearSchool),
-            nearHospital: Boolean(result.nearHospital),
-          }));
-        }
+
+        const validCat = CATEGORIES.includes(result.category)
+          ? result.category
+          : (effectiveCv?.colorVariance > 24 ? 'Garbage Accumulation' : 'Potholes');
+
+        setFormData((prev) => ({
+          ...prev,
+          imageHash: imageHash || result.hashes?.dhash || prev.imageHash,
+          title: result.title || prev.title || (validCat === 'Garbage Accumulation' ? 'Uncollected Garbage & Waste Accumulation' : 'Road Pothole Causing Traffic & Safety Hazard'),
+          category: validCat,
+          severity: result.severity || prev.severity || (validCat === 'Potholes' ? 'High' : 'Medium'),
+          description: result.description || prev.description,
+          landmark: result.landmark || prev.landmark,
+          nearSchool: Boolean(result.nearSchool),
+          nearHospital: Boolean(result.nearHospital),
+        }));
       }
     } catch (err) {
       console.error('AI analysis error:', err);

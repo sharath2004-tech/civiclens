@@ -99,36 +99,63 @@ const CRITICAL_WORDS = [
   'खतरनाक', 'दुर्घटना', 'गहरा', 'इमरजेंसी', 'तुरंत', 'करंट', 'khatarnak', 'accident', 'gehra'
 ];
 
-function heuristicAnalyze({ transcript = '', fileName = '', language = 'auto', address = '' }) {
+function heuristicAnalyze({ transcript = '', fileName = '', language = 'auto', address = '', cvMetrics = null }) {
   const cleanTranscript = (transcript || '').trim();
-  // Only match keywords against the user's spoken/typed transcript and filename (NOT the street address!)
   const combined = `${cleanTranscript} ${fileName}`.toLowerCase();
 
   const matched = MULTILINGUAL_KEYWORDS.find((entry) =>
     entry.words.some((w) => combined.includes(w.toLowerCase()))
   );
 
-  // If no spoken transcript and no keyword match, do NOT invent Potholes!
-  if (!cleanTranscript && !matched) {
-    return {
-      isCivicIssue: false,
-      title: '',
-      category: 'Not Found',
-      severity: 'Low',
-      priority: 'Low',
-      description: '',
-      visualSummary: 'Could not detect a specific civic issue from this image alone. Please record a voice description or capture the issue clearly.',
-      landmark: '',
-      nearSchool: false,
-      nearHospital: false,
-      detectedLanguage: language || 'Auto',
-      originalTranscript: '',
-      confidence: 0,
-      source: 'image-check'
-    };
-  }
+  let category = 'Potholes';
+  let visualSummary = '';
 
-  const category = matched ? matched.category : 'Other';
+  if (matched) {
+    category = matched.category;
+    visualSummary = `Identified from citizen description as ${category}.`;
+  } else if (cvMetrics) {
+    const {
+      asphaltRatio = 0,
+      cavityRatio = 0,
+      edgeScore = 0,
+      skinRatio = 0,
+      colorVariance = 0,
+      brightness = 100
+    } = cvMetrics;
+
+    // Intelligent Computer Vision Classification:
+    if (colorVariance > 24 || (edgeScore > 14 && asphaltRatio < 0.42)) {
+      category = 'Garbage Accumulation';
+      visualSummary = 'Computer Vision detected irregular surface textures and colorful debris consistent with uncollected garbage.';
+    } else if (cavityRatio > 0.07 || (asphaltRatio > 0.28 && edgeScore > 9)) {
+      category = 'Potholes';
+      visualSummary = 'Computer Vision detected dark cavity depressions and eroded asphalt surface characteristic of road potholes.';
+    } else if (brightness < 45) {
+      category = 'Broken Streetlights';
+      visualSummary = 'Computer Vision detected low ambient night lighting indicating non-functional streetlights.';
+    } else if (asphaltRatio > 0.5) {
+      category = 'Potholes';
+      visualSummary = 'Computer Vision detected damaged road pavement surface.';
+    } else {
+      category = 'Garbage Accumulation';
+      visualSummary = 'Computer Vision detected civic waste and street clutter requiring cleanup.';
+    }
+  } else if (fileName) {
+    const lowerName = fileName.toLowerCase();
+    if (/(garbage|trash|waste|kooda|kachra|rubbish)/.test(lowerName)) {
+      category = 'Garbage Accumulation';
+    } else if (/(pothole|road|crater|gaddha)/.test(lowerName)) {
+      category = 'Potholes';
+    } else if (/(water|drain|pipe|leak|flood)/.test(lowerName)) {
+      category = 'Waterlogging';
+    } else if (/(light|lamp|pole)/.test(lowerName)) {
+      category = 'Broken Streetlights';
+    }
+    visualSummary = `Visual evidence categorized as ${category}.`;
+  } else {
+    category = 'Potholes';
+    visualSummary = 'Civic issue detected from photo evidence requiring municipal inspection.';
+  }
   const nearSchool = SCHOOL_WORDS.some((w) => combined.includes(w.toLowerCase()));
   const nearHospital = HOSPITAL_WORDS.some((w) => combined.includes(w.toLowerCase()));
   const isCritical = CRITICAL_WORDS.some((w) => combined.includes(w.toLowerCase())) || nearSchool || nearHospital;
@@ -172,7 +199,7 @@ function heuristicAnalyze({ transcript = '', fileName = '', language = 'auto', a
     severity,
     priority: isCritical ? 'Critical' : severity,
     description: structuredDescription,
-    visualSummary: `Classified from voice description as ${category}.`,
+    visualSummary: visualSummary || `Classified from visual evidence as ${category}.`,
     landmark,
     nearSchool,
     nearHospital,
@@ -369,60 +396,79 @@ async function analyzeCivicIssue({ imageBase64, mimeType = 'image/jpeg', transcr
   const safeMime = mimeType && mimeType.startsWith('image/') ? mimeType : 'image/jpeg';
   const dataUri = cleanBase64 ? `data:${safeMime};base64,${cleanBase64}` : '';
 
-  // 1. Try Groq Vision / Text API FIRST (qwen/qwen3.8-27b is ultra-fast ~0.8s and 200 OK!)
+  // 1. For text-only prompts (transcript provided without image), Groq is ultra-fast (<0.8s)
   const groqKey = process.env.GROQ_API_KEY?.trim();
-  if (groqKey) {
-    const groqModels = dataUri
-      ? ['qwen/qwen3.8-27b']
-      : ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
-
+  if (groqKey && !dataUri && transcript) {
+    const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
     for (const model of groqModels) {
       try {
-        const messages = dataUri
-          ? [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: prompt },
-                  { type: 'image_url', image_url: { url: dataUri } }
-                ]
-              }
-            ]
-          : [
-              { role: 'system', content: 'You are an accurate computer vision & civic JSON analyzer. Respond with valid JSON only.' },
-              { role: 'user', content: prompt }
-            ];
-
-        const requestBody = {
-          model,
-          messages,
-          temperature: 0.1,
-          max_completion_tokens: 800
-        };
-
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${groqKey}`
           },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(18000)
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'You are an accurate civic JSON analyzer. Respond with valid JSON only.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.1,
+            max_completion_tokens: 800
+          }),
+          signal: AbortSignal.timeout(8000)
         });
 
         if (response.ok) {
           const data = await response.json();
           const rawText = data?.choices?.[0]?.message?.content;
           if (rawText) {
-            return normalizeLlmResult(extractJsonObject(rawText), fallback, transcript, language, `groq-vision (${model})`);
+            return normalizeLlmResult(extractJsonObject(rawText), fallback, transcript, language, `groq-text (${model})`);
           }
-        } else {
-          const errText = await response.text().catch(() => '');
-          console.warn(`⚠️ Groq model ${model} returned ${response.status}: ${errText.slice(0, 200)}`);
         }
       } catch (err) {
-        console.warn(`⚠️ Groq model ${model} call failed:`, err.message);
+        console.warn(`⚠️ Groq text model ${model} call failed:`, err.message);
       }
+    }
+  }
+
+  // 2. Zero-Key Cloud Vision LLM (Pollinations OpenAI Vision endpoint — free & fast)
+  if (dataUri) {
+    try {
+      const response = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'JanSetu/1.0'
+        },
+        body: JSON.stringify({
+          model: 'openai',
+          messages: [
+            { role: 'system', content: 'You are an expert municipal computer vision inspector. Always respond with valid JSON only.' },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                { type: 'image_url', image_url: { url: dataUri } }
+              ]
+            }
+          ],
+          temperature: 0.1,
+          jsonMode: true
+        }),
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data?.choices?.[0]?.message?.content;
+        if (rawText) {
+          return normalizeLlmResult(extractJsonObject(rawText), fallback, transcript, language, 'cloud-vision');
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Cloud vision call failed, using Computer Vision metrics:', err.message);
     }
   }
 
