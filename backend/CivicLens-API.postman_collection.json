@@ -1,0 +1,118 @@
+{
+  "info": {
+    "name": "CivicLens API",
+    "description": "API collection for CivicLens platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+91 9876543210\",\n  \"address\": \"Delhi\"\n}"
+            },
+            "url": {"raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"]}
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Complaints",
+      "item": [
+        {
+          "name": "Get All Complaints",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/complaints", "host": ["{{baseUrl}}"], "path": ["api", "complaints"]}
+          }
+        },
+        {
+          "name": "Get Single Complaint",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/complaints/CL-2024-001", "host": ["{{baseUrl}}"], "path": ["api", "complaints", "CL-2024-001"]}
+          }
+        },
+        {
+          "name": "Create Complaint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Pothole\",\n  \"description\": \"Large pothole on main road\",\n  \"category\": \"Potholes\",\n  \"location\": {\n    \"coordinates\": [77.2090, 28.6139],\n    \"address\": \"Main Road, New Delhi\"\n  },\n  \"severity\": \"High\"\n}"
+            },
+            "url": {"raw": "{{baseUrl}}/api/complaints", "host": ["{{baseUrl}}"], "path": ["api", "complaints"]}
+          }
+        },
+        {
+          "name": "Upvote Complaint",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {"raw": "{{baseUrl}}/api/complaints/CL-2024-001/upvote", "host": ["{{baseUrl}}"], "path": ["api", "complaints", "CL-2024-001", "upvote"]}
+          }
+        },
+        {
+          "name": "Get Nearby Complaints",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/complaints/search/nearby?lat=28.6139&lng=77.2090&maxDistance=5000", "host": ["{{baseUrl}}"], "path": ["api", "complaints", "search", "nearby"], "query": [{"key": "lat", "value": "28.6139"}, {"key": "lng", "value": "77.2090"}, {"key": "maxDistance", "value": "5000"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Get Overview Stats",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/stats/overview", "host": ["{{baseUrl}}"], "path": ["api", "stats", "overview"]}
+          }
+        },
+        {
+          "name": "Get Stats by Category",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/stats/by-category", "host": ["{{baseUrl}}"], "path": ["api", "stats", "by-category"]}
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:5000"},
+    {"key": "token", "value": ""}
+  ]
+}
