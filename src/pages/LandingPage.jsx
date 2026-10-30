@@ -110,13 +110,6 @@ export default function LandingPage() {
             <LanguageSelector variant="header" />
             <button
               type="button"
-              onClick={() => navigate('/admin')}
-              className="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors whitespace-nowrap"
-            >
-              {t('admin')}
-            </button>
-            <button
-              type="button"
               onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
               className="px-3 py-1.5 rounded-xl bg-[#0F172A] text-white text-xs font-bold hover:bg-slate-800 transition-colors whitespace-nowrap shadow-2xs"
             >
@@ -323,36 +316,38 @@ export default function LandingPage() {
           </div>
         )}
 
-        {/* Portal Switcher Cards */}
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <button
-            type="button"
-            onClick={() => navigate(hasToken ? '/dashboard' : '/login')}
-            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
-          >
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B63F6] flex items-center justify-center shrink-0">
-              <UserCheck className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-extrabold text-[#0F172A] truncate">Citizen Portal</div>
-              <div className="text-[11px] text-[#64748B] truncate">{t('myComplaints')}</div>
-            </div>
-          </button>
+        {/* Portal Switcher Card - Only show if logged in as admin/worker */}
+        {user?.role === 'admin' || user?.role === 'worker' ? (
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
+            >
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B63F6] flex items-center justify-center shrink-0">
+                <UserCheck className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-extrabold text-[#0F172A] truncate">Citizen Portal</div>
+                <div className="text-[11px] text-[#64748B] truncate">{t('myComplaints')}</div>
+              </div>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => navigate('/admin')}
-            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
-          >
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-extrabold text-[#0F172A] truncate">{t('admin')} Portal</div>
-              <div className="text-[11px] text-[#64748B] truncate">Command Center</div>
-            </div>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs text-left hover:bg-slate-50 transition-all"
+            >
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-extrabold text-[#0F172A] truncate">{t('admin')} Portal</div>
+                <div className="text-[11px] text-[#64748B] truncate">Command Center</div>
+              </div>
+            </button>
+          </div>
+        ) : null}
       </main>
 
       {/* Bottom 4-Icon Clean Navigation Bar (Map removed, Map only shown when submitting) */}

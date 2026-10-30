@@ -86,15 +86,71 @@ function App() {
         <Route path="/explore" element={<ExploreMap />} />
         <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/complaints" element={<AllComplaints />} />
-        <Route path="/admin/map" element={<ExploreMap />} />
-        <Route path="/admin/priority-queue" element={<PriorityQueue />} />
-        <Route path="/admin/departments" element={<Departments />} />
-        <Route path="/admin/workers" element={<Workers />} />
-        <Route path="/admin/analytics" element={<Analytics />} />
-        <Route path="/admin/settings" element={<Settings />} />
+        {/* Admin Routes - Protected */}
+        <Route 
+          path="/admin" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <AdminDashboard /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/complaints" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <AllComplaints /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/map" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <ExploreMap /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/priority-queue" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <PriorityQueue /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/departments" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <Departments /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/workers" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <Workers /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/analytics" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <Analytics /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/settings" 
+          element={
+            user?.role === 'admin' || user?.role === 'worker' 
+              ? <Settings /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
       </Routes>
       </Suspense>
     </Router>
