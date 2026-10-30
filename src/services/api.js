@@ -9,6 +9,13 @@ const RENDER_API_URL = 'https://civiclens-u1s5.onrender.com/api';
 const LOCAL_USB_API = 'http://localhost:5000/api';
 const LAPTOP_WIFI_API = 'http://10.190.124.75:5000/api';
 
+function normalizeApiBaseUrl(rawUrl) {
+  if (!rawUrl) return '';
+  const trimmed = String(rawUrl).trim().replace(/\/+$/, '');
+  if (trimmed === '/api' || trimmed.endsWith('/api')) return trimmed;
+  return `${trimmed}/api`;
+}
+
 const isWebProductionHost =
   typeof window !== 'undefined' &&
   window.location.protocol === 'https:' &&
@@ -16,7 +23,7 @@ const isWebProductionHost =
   window.location.hostname !== '127.0.0.1' &&
   !window.Capacitor?.isNativePlatform?.();
 
-const envApiUrl = import.meta.env.VITE_API_BASE_URL;
+const envApiUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 const API_BASE_URL = isWebProductionHost
   ? envApiUrl && !envApiUrl.includes('localhost')
     ? envApiUrl
@@ -60,6 +67,16 @@ api.interceptors.response.use(
           ? RENDER_API_URL
           : LAPTOP_WIFI_API;
       }
+      return api.request(config);
+    }
+    if (
+      error.response?.status === 404 &&
+      error.response?.data?.message === 'Route not found' &&
+      config &&
+      !config._retriedWithApiPrefix
+    ) {
+      config._retriedWithApiPrefix = true;
+      config.baseURL = RENDER_API_URL;
       return api.request(config);
     }
     if (error.response?.status === 401) {

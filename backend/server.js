@@ -55,8 +55,8 @@ const ensureDBConnected = async () => {
   await dbConnectPromise;
 };
 
-app.use('/api', async (req, res, next) => {
-  if (req.path === '/health') return next();
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health' || req.path === '/health' || req.path === '/') return next();
   try {
     await ensureDBConnected();
     next();
@@ -65,16 +65,16 @@ app.use('/api', async (req, res, next) => {
   }
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/complaints', complaintRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/ai', aiRoutes);
+// API Routes (mounted at both /api/* and root /* so VITE_API_BASE_URL works with or without /api suffix)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/users', '/users'], userRoutes);
+app.use(['/api/complaints', '/complaints'], complaintRoutes);
+app.use(['/api/admin', '/admin'], adminRoutes);
+app.use(['/api/stats', '/stats'], statsRoutes);
+app.use(['/api/ai', '/ai'], aiRoutes);
 
-// Health check route
-app.get('/api/health', (req, res) => {
+// Health check routes
+app.get(['/api/health', '/health', '/'], (req, res) => {
   res.json({ 
     status: 'success', 
     message: 'CivicLens API is running',
