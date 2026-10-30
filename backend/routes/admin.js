@@ -51,17 +51,20 @@ router.put('/complaints/:id/status', async (req, res) => {
     complaint.updates.push({
       status,
       message: message || notes || `Status updated to ${status}`,
-      by: req.user.name
+      by: req.user?.name || req.user?.email || 'Municipal Authority'
     });
 
     // If resolved, set resolved date
     if (status === 'Resolved') {
       complaint.resolvedAt = new Date();
       
-      // Update user's resolved count
-      await User.findByIdAndUpdate(complaint.reportedBy, {
-        $inc: { complaintsResolved: 1 }
-      });
+      // Update user's resolved count safely
+      const reporterId = complaint.reportedBy?._id || complaint.reportedBy;
+      if (reporterId && mongoose.Types.ObjectId.isValid(reporterId)) {
+        await User.findByIdAndUpdate(reporterId, {
+          $inc: { complaintsResolved: 1 }
+        }).catch(() => {});
+      }
     }
 
     await complaint.save();
