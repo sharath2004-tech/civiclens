@@ -73,7 +73,15 @@ export function calculatePriority(complaint) {
   return Math.min(Math.round(score), 100);
 }
 
-const BACKEND_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+const RENDER_ORIGIN = 'https://civiclens-u1s5.onrender.com';
+const isWebProd =
+  typeof window !== 'undefined' &&
+  window.location.protocol === 'https:' &&
+  window.location.hostname !== 'localhost';
+
+const BACKEND_ORIGIN = isWebProd
+  ? RENDER_ORIGIN
+  : (import.meta.env.VITE_API_BASE_URL || RENDER_ORIGIN).replace(/\/api\/?$/, '');
 
 /**
  * Resolves a media URL from either Cloudinary (`https://res.cloudinary.com/...`)

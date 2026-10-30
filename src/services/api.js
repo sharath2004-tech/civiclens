@@ -5,7 +5,10 @@
 
 import axios from 'axios';
 
+const RENDER_API_URL = 'https://civiclens-u1s5.onrender.com/api';
+const LOCAL_USB_API = 'http://localhost:5000/api';
 const LAPTOP_WIFI_API = 'http://10.190.124.75:5000/api';
+
 const isWebProductionHost =
   typeof window !== 'undefined' &&
   window.location.protocol === 'https:' &&
@@ -13,14 +16,19 @@ const isWebProductionHost =
   window.location.hostname !== '127.0.0.1' &&
   !window.Capacitor?.isNativePlatform?.();
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (isWebProductionHost ? '/api' : 'http://localhost:5000/api');
+const envApiUrl = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = isWebProductionHost
+  ? envApiUrl && !envApiUrl.includes('localhost')
+    ? envApiUrl
+    : RENDER_API_URL
+  : window.Capacitor?.isNativePlatform?.()
+  ? LOCAL_USB_API
+  : envApiUrl || RENDER_API_URL;
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 45000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -38,16 +46,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle response errors + automatic USB/Wi-Fi fallback on Capacitor mobile
+// Handle response errors + automatic fallback (Local USB -> Render Cloud -> Vercel Serverless / Wi-Fi)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config;
     if (!error.response && config && !config._retriedFallback) {
       config._retriedFallback = true;
-      config.baseURL = config.baseURL?.includes('10.190.124.75')
-        ? 'http://localhost:5000/api'
-        : LAPTOP_WIFI_API;
+      if (isWebProductionHost) {
+        config.baseURL = config.baseURL === RENDER_API_URL ? '/api' : RENDER_API_URL;
+      } else {
+        config.baseURL = config.baseURL?.includes('localhost')
+          ? RENDER_API_URL
+          : LAPTOP_WIFI_API;
+      }
       return api.request(config);
     }
     if (error.response?.status === 401) {
